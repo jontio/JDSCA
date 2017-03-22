@@ -11,7 +11,7 @@ Precompiled binaries can be downloaded from [Releases].
 
 ## Directory structure
 
-The [DSCA](DSCA) directory is where the Qt pro file is for the main application.
+The [JDSCA](JDSCA) directory is where the Qt pro file is for the main application.
 
 ## Compiling
 
