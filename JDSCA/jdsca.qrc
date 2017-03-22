@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/application-exit.png</file>
+        <file>images/settings.png</file>
+        <file>images/red_led.svg</file>
+        <file>images/green_led.svg</file>
+        <file>images/off_led.svg</file>
+        <file>images/radio.ico</file>
+        <file>images/constellation.png</file>
+        <file>images/spectrum.png</file>
+        <file>images/Qt_logo_2016.svg</file>
+    </qresource>
+</RCC>
