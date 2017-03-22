@@ -3,17 +3,17 @@ DSCA demodulator and decoder written in C++ Qt
 
 ![](images/JDSCA.png)
 
-JMPX can encode and modulate DSCA signals.
+[JMPX] can encode and modulate DSCA signals.
 
-##Binaries
+## Binaries
 
 Precompiled binaries can be downloaded from [Releases].
 
-##Directory structure
+## Directory structure
 
 The [DSCA](DSCA) directory is where the Qt pro file is for the main application.
 
-##Compiling
+## Compiling
 
 Compiling requires the Qt framework which can be obtained from http://www.qt.io/download-open-source/ . Qt Creator can be used to compile JDSCA and comes with the Qt framework. At least version 5 of the Qt framework is required.
 
@@ -33,3 +33,4 @@ http://jontio.zapto.org
 [JMSK]: https://github.com/jontio/JMSK
 [RTL-SDR]: http://www.rtl-sdr.com/about-rtl-sdr/
 [Releases]: https://github.com/jontio/JDSCA/releases
+[JMPX]: https://github.com/jontio/JMPX

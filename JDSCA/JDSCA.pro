@@ -83,7 +83,7 @@ DISTFILES += \
     ../qcustomplot/changelog.txt \
     ../qcustomplot/GPL.txt \
     ../README.md \
-    ../images/JDSCA.jpg
+    ../images/JDSCA.png
 
 win32 {
 RC_FILE = jdsca.rc
