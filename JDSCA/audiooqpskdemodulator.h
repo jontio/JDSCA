@@ -18,7 +18,7 @@ public:
         Settings()
         {
             audio_device_in=QAudioDeviceInfo::defaultInputDevice();
-            buffersizeinsecs=1.0;
+            buffersizeinsecs=2.0;
         }
     };
     explicit AudioOqpskDemodulator(QObject *parent = 0);

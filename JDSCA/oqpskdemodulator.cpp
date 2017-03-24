@@ -596,7 +596,7 @@ qint64 OqpskDemodulator::writeData(const char *data, qint64 len)
 
     //return the demodulated data
     //using bits and the qiodevice class
-    if(!RxDataBits.isEmpty()&&RxDataBits.size()>(fb/25))
+    if(!RxDataBits.isEmpty()&&RxDataBits.size()>(fb/13))
     {
         if(mse<signalthreshold||lastmse<signalthreshold)
         {
