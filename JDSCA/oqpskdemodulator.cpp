@@ -596,7 +596,7 @@ qint64 OqpskDemodulator::writeData(const char *data, qint64 len)
 
     //return the demodulated data
     //using bits and the qiodevice class
-    if(!RxDataBits.isEmpty()&&RxDataBits.size()>(fb/13))
+    if(!RxDataBits.isEmpty()&&RxDataBits.size()>(fb/20))
     {
         if(mse<signalthreshold||lastmse<signalthreshold)
         {
@@ -635,6 +635,9 @@ void OqpskDemodulator::FreqOffsetEstimateSlot(double freq_offset_est)//coarse es
     {
         mixer2.SetFreq(mixer_center.GetFreqHz()+freq_offset_est);
         //st_osc.SetFreq(st_osc_ref.GetFreqHz());//reset st frequency
+
+     //anti lockup test
+     st_osc.SetFreq(st_osc_ref.GetFreqHz());
 
         //reset cma
         cma.setSettings(24,0.0001,0.000001,0.0000000001,1);//start the stepsize very big then reduce it as time goes by

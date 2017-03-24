@@ -5,6 +5,8 @@ DSCA demodulator and decoder written in C++ Qt
 
 [JMPX] can encode and modulate DSCA signals.
 
+For more information see http://jontio.zapto.org/hda1/jdsca.html
+
 ## Binaries
 
 Precompiled binaries can be downloaded from [Releases].
