@@ -15,7 +15,7 @@
 
 #include <QFile>
 
-class OqpskDemodulator : public QIODevice
+class OqpskDemodulator : public QObject
 {
     Q_OBJECT
 public:
@@ -46,12 +46,6 @@ public:
     bool getCMA(){return cma_enabled;}
     void setAFC(bool state);
     void setSettings(Settings settings);
-    void ConnectSinkDevice(QIODevice *datasinkdevice);
-    void DisconnectSinkDevice();
-    void start();
-    void stop();
-    qint64 readData(char *data, qint64 maxlen);
-    qint64 writeData(const char *data, qint64 len);
     double getCurrentFreq();
     void setScatterPointType(ScatterPointType type);
 signals:
@@ -65,9 +59,9 @@ signals:
     void MSESignal(double mse);
     void SignalStatus(bool gotasignal);
     void WarningTextSignal(const QString &str);
-    void EbNoMeasurmentSignal(double EbNo);
+    void EbNoMeasurmentSignal(double EbNo);   
+    void demodulatedSoftBits(const QByteArray &demoudulated_soft_bits);
 private:
-    QPointer<QIODevice> pdatasinkdevice;
     bool afc;
     int scatterpointtype;
 
@@ -146,11 +140,21 @@ private:
 
     Settings settings;
 
+    QMutex *mut;
+
+
 public slots:
     void BitrateEstimate(double bitrate_est);
     void FreqOffsetEstimateSlot(double freq_offset_est);
     void CenterFreqChangedSlot(double freq_center);
     void DCDstatSlot(bool dcd);
+    void demodData(const double *inputBuffer, qint64 nBufferFrames, int channels);
+    void demodFromStereoSoundEvent(double* inputBuffer,double* outputBuffer,int nBufferFrames)
+    {
+        Q_UNUSED(outputBuffer);
+        demodData(inputBuffer,nBufferFrames,2);
+    }
+
 private slots:
     void setBandPassFilter();
 };

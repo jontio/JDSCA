@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <assert.h>
 #include <QSize>
+#include <QThread>
 
 #include "jconvolutionalcodec.h"
 
@@ -305,7 +306,7 @@ private:
     int buffer_ptr;
 };
 
-class DSCADataDeFormatter : public QIODevice
+class DSCADataDeFormatter : public QObject
 {
     Q_OBJECT
 public:
@@ -334,16 +335,13 @@ public:
 
     explicit DSCADataDeFormatter(QObject *parent = 0);
     ~DSCADataDeFormatter();
-    void ConnectSinkDevice(QIODevice *device);
-    void DisconnectSinkDevice();
-    qint64 readData(char *data, qint64 maxlen);
-    qint64 writeData(const char *data, qint64 len);
+
 signals:
     void DataCarrierDetect(bool status);
     void Errorsignal(QString &error);
-    void signalDSCAPacket(uchar packet_type, QByteArray &packet);
-    void signalDSCAOpusPacket(QByteArray &packet);
-    void signalDSCARDSPacket(QByteArray &packet);
+    void signalDSCAPacket(uchar packet_type, QByteArray packet) const;
+    void signalDSCAOpusPacket(QByteArray packet) const;
+    void signalDSCARDSPacket(QByteArray packet) const;
     void signalModeChanged(DSCADataDeFormatter::Mode mode);
     void ShortDataFrame();
     void signalBER(double ber);
@@ -367,12 +365,9 @@ public slots:
         FEC_hard_Type=enable;
         //qDebug()<<"FEC_hard_Type"<<enable;
     }
-
+    void processDemodulatedSoftBits(const QByteArray &soft_bits);
 private:
-    bool Start();
-    void Stop();
-    QByteArray &Decode(const QByteArray &soft_bits);
-    QPointer<QIODevice> psinkdevice;
+
     QVector<short> sbits;
     QByteArray decodedbytes;
     PreambleDetector preambledetector;

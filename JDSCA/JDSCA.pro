@@ -5,7 +5,7 @@
 #
 #-------------------------------------------------
 
-QT       += multimedia core gui svg
+QT       += core gui svg
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets  printsupport
 
@@ -36,7 +36,6 @@ SOURCES += main.cpp\
     ../kiss_fft130/kiss_fftr.c \
     gui_classes/settingsdialog.cpp \
     oqpskdemodulator.cpp \
-    audiooqpskdemodulator.cpp \
     ../kiss_fft130/kiss_fastfir.c \
     opusaudioout.cpp \
     JSound.cpp \
@@ -59,7 +58,6 @@ HEADERS  += mainwindow.h \
     ../kiss_fft130/kiss_fftr.h \
     gui_classes/settingsdialog.h \
     oqpskdemodulator.h \
-    audiooqpskdemodulator.h \
     ../kiss_fft130/kiss_fastfir.h \
     ../libopus-1.2-alpha/include/opus/opus.h \
     opusaudioout.h \

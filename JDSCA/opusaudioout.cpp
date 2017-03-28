@@ -67,11 +67,13 @@ void OpusAudioOut::set_soundcard_name(QString &name)
     jsound->Active(true);
 }
 
-void OpusAudioOut::decode(QByteArray &packet)
+void OpusAudioOut::decode(const QByteArray &packet)
 {
     int frame_size = opus_decode(decoder, (uchar*)packet.data(), packet.size(), out, MAX_FRAME_SIZE, 0);
  //   if (frame_size<0)qDebug()<<"decoder failed: "<<opus_strerror(frame_size);
  //    else qDebug()<<"ok frame_size="<<frame_size;
+
+    //qDebug()<<"OpusAudioOut::decode"<<QThread::currentThreadId();
 
     callback_mutex.lock();
 

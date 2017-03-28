@@ -2,7 +2,7 @@
 #define SETTINGSDIALOG_H
 
 #include <QtGlobal>
-#include <QHostAddress>
+
 
 #if defined(Q_OS_UNIX) || defined(Q_OS_LUNX)
 #define APPDATALOCATIONS QStandardPaths::AppDataLocation
@@ -12,8 +12,6 @@
 
 #include <QDialog>
 #include <QVector>
-#include <QAudioDeviceInfo>
-
 
 
 namespace Ui {
@@ -29,8 +27,6 @@ public:
     ~SettingsDialog();
     void populatesettings();
 
-    QAudioDeviceInfo audioinputdevice;
-
     bool dropnontextmsgs;
     QString msgdisplayformat;
     bool widebandwidthenable;
@@ -39,6 +35,8 @@ public:
     bool beepontextmessage;
 
     QString WantedOutSoundDevice;
+
+    QString WantedInSoundDevice;
 
     bool use_cma;
     bool use_tracking;

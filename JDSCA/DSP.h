@@ -818,7 +818,7 @@ public:
 
 };
 
-//simple non fractionally spaced
+//simple fractionally spaced
 class CMA
 {
 public:
@@ -841,7 +841,6 @@ public:
     double finalstepsize;
     double stepsizereductionperpoint;
 private:
-
 };
 
 

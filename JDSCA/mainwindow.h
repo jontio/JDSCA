@@ -3,10 +3,11 @@
 
 #include <QMainWindow>
 #include <QLabel>
-#include "audiooqpskdemodulator.h"
+#include "oqpskdemodulator.h"
 #include "gui_classes/settingsdialog.h"
 #include "dscadatadeformatter.h"
 #include "opusaudioout.h"
+#include "JSound.h"
 
 namespace Ui {
 class MainWindow;
@@ -29,10 +30,10 @@ private:
     QLabel *berlabel;
     QLabel *bitratelabel;
 
-    //OQPSK demodulator
-    AudioOqpskDemodulator *audiooqpskdemodulator;
-    AudioOqpskDemodulator::Settings audiooqpskdemodulatorsettings;
-    //
+    //single audio device, one demodulator and some demod settings
+    TJCSound *jsound;
+    OqpskDemodulator *oqpskdemod;
+    OqpskDemodulator::Settings oqpskdemodulatorsettings;
 
     DSCADataDeFormatter *datadeformatter;
     OpusAudioOut *opusAudioOut;
@@ -54,7 +55,7 @@ private slots:
     void OpusSignalStatusSlot(bool signal);
     void EbNoSlot(double EbNo);
     void WarningTextSlot(QString warning);
-    void DSCARDSPacketSlot(QByteArray &ba);
+    void DSCARDSPacketSlot(const QByteArray &ba);
     void PeakVolumeSlot(double Volume);
     void bitRateChangedSlot(double bitrate);
     void PlottablesSlot(double freq_est,double freq_center,double bandwidth);
@@ -70,6 +71,10 @@ private slots:
     void srinkwindow();
     void on_actionAbout_Qt_triggered();
     void on_horizontalSlider_bw_sliderMoved(int position);
+
+
+signals:
+
 };
 
 #endif // MAINWINDOW_H

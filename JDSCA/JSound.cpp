@@ -85,7 +85,7 @@ bool TJCSound::SetSoundCardInByName()
         if(firstindevice<0)firstindevice=device;
         if(((QString)Devices.Device[device].name)==wantedInDeviceName)
         {
-            qDebug()<<"SetSoundCardInByName: device = "<<device<<" = "<<((QString)Devices.Device[device].name);
+            //qDebug()<<"SetSoundCardInByName: device = "<<device<<" = "<<((QString)Devices.Device[device].name);
             iParameters.deviceId=device;
             return true;
         }

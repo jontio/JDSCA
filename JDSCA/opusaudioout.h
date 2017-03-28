@@ -20,7 +20,7 @@ public:
 signals:
     void OpusDCDchanged(bool opusdcd);
 public slots:
-    void decode(QByteArray &packet);
+    void decode(const QByteArray &packet);
 
     void SoundEvent(qint16 *inputBuffer, qint16 *outputBuffer, int nBufferFrames);
 private:

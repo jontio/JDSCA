@@ -1443,7 +1443,8 @@ void CMA::setSettings(int size, double _firststepsize,double _finalstepsize,doub
 
 cpx_type CMA::slowfir(const cpx_type &in_point)
 {
-    assert(w.size()==x.size());
+
+    //fir
     cpx_type y=0;
     for(int i=0;i<x.size();i++)
     {
@@ -1454,6 +1455,18 @@ cpx_type CMA::slowfir(const cpx_type &in_point)
     {
         y+=w[i]*x[i];
     }
+
+//    //fir
+//    cpx_type y=0;
+//    int last_loc=x.size()-1;
+//    for(int i=0;i<last_loc;i++)
+//    {
+//        x[i]=x[i+1];
+//        y+=w[i]*x[i];
+//    }
+//    x[last_loc]=in_point;
+//    y+=w[last_loc]*x[last_loc];
+
     if(!std::isfinite(abs(y)))
     {
         y=0;
@@ -1514,7 +1527,6 @@ void CMA::updateEqualizerFor8PointOQPSKShape(const cpx_type &y,int odd)
 
 void CMA::updateEqualizerFor8PointOQPSKShapeParallelVersion(const cpx_type &y,int odd)
 {
-    assert(w.size()==x.size());
     cpx_type e;
     cpx_type ty=y;
     if(odd)ty=y*cpx_type(cos(M_PI_2),sin(M_PI_2));

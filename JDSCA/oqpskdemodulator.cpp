@@ -11,8 +11,10 @@
 // use qDebug()<<QThread::currentThreadId(); to see the thread id
 
 OqpskDemodulator::OqpskDemodulator(QObject *parent)
-:   QIODevice(parent)
+:   QObject(parent)
 {
+
+    mut = new QMutex(QMutex::Recursive);
 
     dcd=false;
 
@@ -151,6 +153,8 @@ OqpskDemodulator::OqpskDemodulator(QObject *parent)
 OqpskDemodulator::~OqpskDemodulator()
 {
 
+    if(mut->tryLock(5000))mut->unlock();
+
     delete agc;
     delete fir_re;
     delete fir_im;
@@ -158,39 +162,27 @@ OqpskDemodulator::~OqpskDemodulator()
     delete marg;
     delete mermeasure;
     delete coarsefreqestimate;
-}
 
-///Connects a sink devide to the modem for the demodulated data
-void OqpskDemodulator::ConnectSinkDevice(QIODevice *_datasinkdevice)
-{
-    if(!_datasinkdevice)return;
-    pdatasinkdevice=_datasinkdevice;
-    if(pdatasinkdevice.isNull())return;
-    QIODevice *io=pdatasinkdevice.data();
-    io->open(QIODevice::WriteOnly);//!!!overrides the settings
-}
-
-///Disconnects the sink devide from the modem
-void OqpskDemodulator::DisconnectSinkDevice()
-{
-    if(pdatasinkdevice.isNull())return;
-    QIODevice *io=pdatasinkdevice.data();
-    io->close();
-    pdatasinkdevice.clear();
+    delete mut;
 }
 
 void OqpskDemodulator::setAFC(bool state)
 {
+    QMutexLocker locker(mut);
     afc=state;
 }
 
 void OqpskDemodulator::setScatterPointType(ScatterPointType type)
 {
+    QMutexLocker locker(mut);
     scatterpointtype=type;
 }
 
 void OqpskDemodulator::setSettings(Settings _settings)
 {
+
+    QMutexLocker locker(mut);
+
     settings=_settings;
 
 
@@ -314,6 +306,8 @@ void OqpskDemodulator::setSettings(Settings _settings)
 void OqpskDemodulator::CenterFreqChangedSlot(double freq_center)//spectrum display calls this when user changes the center freq
 {
 
+    QMutexLocker locker(mut);
+
     mixer_center.SetFreq(freq_center,Fs);
     if(afc)mixer2.SetFreq(mixer_center.GetFreqHz());
     if((mixer2.GetFreqHz()-mixer_center.GetFreqHz())>(lockingbw/2.0))
@@ -332,6 +326,9 @@ void OqpskDemodulator::CenterFreqChangedSlot(double freq_center)//spectrum displ
 
 void OqpskDemodulator::setBandwidth(double bandwidth_hz)
 {
+
+    QMutexLocker locker(mut);
+
     if(bandwidth_hz<1000.0)return;
     if(bandwidth_hz>Fs/2.0)return;
 
@@ -351,38 +348,36 @@ void OqpskDemodulator::setBandwidth(double bandwidth_hz)
     CenterFreqChangedSlot(mixer_center.GetFreqHz());
 }
 
-void OqpskDemodulator::start()
-{
-    open(QIODevice::WriteOnly);
-}
-
-void OqpskDemodulator::stop()
-{
-    close();
-}
-
 double  OqpskDemodulator::getCurrentFreq()
 {
+    QMutexLocker locker(mut);
     return mixer_center.GetFreqHz();
 }
 
-qint64 OqpskDemodulator::readData(char *data, qint64 maxlen)
-{
-    Q_UNUSED(data);
-    Q_UNUSED(maxlen);
-    return 0;
-}
-
-qint64 OqpskDemodulator::writeData(const char *data, qint64 len)
+void OqpskDemodulator::demodData(const double *inputBuffer, qint64 nBufferFrames,int channels)
 {
     double lastmse=mse;
 
+    //qDebug()<<"OqpskDemodulator::demodData"<<QThread::currentThreadId();
+
     bool sendscatterpoints=false;
 
-    const short *ptr = reinterpret_cast<const short *>(data);
-    for(int i=0;i<len/((int)sizeof(short));i++)
+    if(channels<0||channels>2)return;//what do we do?
+
+    QMutexLocker locker(mut);
+
+    //const short *ptr = reinterpret_cast<const short *>(inputBuffer);
+    //for(int i=0;i<nBufferFrames/((int)sizeof(short));i++)
+    double dval;
+    for(int i=0;i<nBufferFrames;i++)
     {
-        double dval=((double)(*ptr))/32768.0;
+
+        if(channels==2)
+        {
+            dval=inputBuffer[i*channels]+inputBuffer[i*channels+1];
+        }
+         else dval=inputBuffer[i];
+
 
         //for looks
         static double maxval=0;
@@ -591,31 +586,27 @@ qint64 OqpskDemodulator::writeData(const char *data, qint64 len)
         mixer_center.WTnextFrame();
         st_osc.WTnextFrame();
         st_osc_ref.WTnextFrame();
-        ptr++;
     }
 
     //return the demodulated data
-    //using bits and the qiodevice class
+    //using bits
     if(!RxDataBits.isEmpty()&&RxDataBits.size()>(fb/20))
     {
         if(mse<signalthreshold||lastmse<signalthreshold)
         {
-            if(!pdatasinkdevice.isNull())
-            {
-                QIODevice *io=pdatasinkdevice.data();
-                if(io->isOpen())io->write(RxDataBits);
-            }
+            QByteArray tba=RxDataBits;
+            emit demodulatedSoftBits(tba);
         }
         RxDataBits.clear();
     }
 
 
-    return len;
 
 }
 
 void OqpskDemodulator::BitrateEstimate(double bitrate_est)//coarse est class calls this with current est
 {
+    QMutexLocker locker(mut);
     //qDebug()<<"change rate!!! to"<<bitrate_est;
     settings.fb=bitrate_est;
     settings.freq_center=mixer_center.GetFreqHz();
@@ -625,6 +616,11 @@ void OqpskDemodulator::BitrateEstimate(double bitrate_est)//coarse est class cal
 
 void OqpskDemodulator::FreqOffsetEstimateSlot(double freq_offset_est)//coarse est class calls this with current est
 {
+
+
+
+    QMutexLocker locker(mut);
+
     freqestimator_working=false;
 
     if((mixer_center.GetFreqHz()+freq_offset_est)>Fs/2)freq_offset_est=0;
@@ -670,6 +666,8 @@ void OqpskDemodulator::FreqOffsetEstimateSlot(double freq_offset_est)//coarse es
 
 void OqpskDemodulator::DCDstatSlot(bool _dcd)
 {
+    QMutexLocker locker(mut);
+
     dcd=_dcd;
     if(dcd)signalthreshold=0.95;//if the deformater says we have data comeing from us then dont loose signal till the datadeformatter tells us
      else signalthreshold=0.6;
@@ -677,6 +675,9 @@ void OqpskDemodulator::DCDstatSlot(bool _dcd)
 
 void OqpskDemodulator::setBandPassFilter()
 {
+
+    QMutexLocker locker(mut);
+
     coarsefreqestimate->setSettings(settings.coarsefreqest_fft_power,2.0*lockingbw/2.0,fb,Fs);
     bluebpf->updateKernel(QJFilterDesign::BandPassHanning(mixer_center.GetFreqHz()-lockingbw/2.0,mixer_center.GetFreqHz()+lockingbw/2.0,Fs,bluebpf->getKernelSize()));
 }

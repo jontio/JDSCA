@@ -3,29 +3,28 @@
 #include <QDebug>
 #include <QStandardPaths>
 
-#ifdef __linux__
-#include <unistd.h>
-#define Sleep(x) usleep(x * 1000);
-#endif
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
-
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 
-
-
     srinkwindow();
-
     setFixedSize(width(),height());
 
-    //create areo decoder
+    //create audio device and connect its output to a slot in this class to dipatch the data to the right place
+    jsound = new TJCSound(this);
+    jsound->iParameters.nChannels=2;
+    jsound->oParameters.nChannels=0;
+    jsound->sampleRate=192000;
+    jsound->audioformat=RTAUDIO_FLOAT64;
+    jsound->options.streamName="JDSCA";
+    jsound->bufferFrames=16384;
+
+    //create oqpsk demodulator
+    oqpskdemod = new OqpskDemodulator(this);
+
+    //create datadeformatter decoder
     datadeformatter = new DSCADataDeFormatter(this); //Create datadeformatter
 
     //create opus audio out decoder
@@ -34,18 +33,18 @@ MainWindow::MainWindow(QWidget *parent) :
     //create settings dialog.
     settingsdialog = new SettingsDialog(this);
 
-    //create the oqpsk demodulator
-    audiooqpskdemodulator = new AudioOqpskDemodulator(this);
 
-    //default sink is the datadeformatter device
-    audiooqpskdemodulator->ConnectSinkDevice(datadeformatter);
+    //connect the datadeformatter as the sink for the oqpsk demod output
+    //should this be in the audio thread or the gui thread?
+    //currently its not safe be could be made safe
+connect(oqpskdemod,SIGNAL(demodulatedSoftBits(QByteArray)),datadeformatter,SLOT(processDemodulatedSoftBits(QByteArray)));
+//connect(oqpskdemod,SIGNAL(demodulatedSoftBits(QByteArray)),datadeformatter,SLOT(processDemodulatedSoftBits(QByteArray)),Qt::DirectConnection);
+
+//qDebug()<<"gui QThread"<<QThread::currentThreadId();
 
     //console setup
     ui->console->setEnabled(true);
     ui->console->setLocalEchoEnabled(true);
-
-    //datadeformatter setup
-    datadeformatter->ConnectSinkDevice(ui->console->consoledevice);
 
     //statusbar setup
     berlabel = new QLabel();
@@ -68,28 +67,39 @@ MainWindow::MainWindow(QWidget *parent) :
     //misc connections
     connect(ui->action_About,    SIGNAL(triggered()),                                   this, SLOT(AboutSlot()));
 
+
+    //for queued connection back
+    qRegisterMetaType<QVector<cpx_type> >("QVector<cpx_type>");
+    qRegisterMetaType<QVector<double> >("QVector<double>");
+qRegisterMetaType<DSCADataDeFormatter::Mode>("DSCADataDeFormatter::Mode");
+
+
+
     //oqpsk connections
-    connect(audiooqpskdemodulator, SIGNAL(Plottables(double,double,double)),              this,SLOT(PlottablesSlot(double,double,double)));
-    connect(audiooqpskdemodulator, SIGNAL(SignalStatus(bool)),                            this,SLOT(SignalStatusSlot(bool)));
-    connect(audiooqpskdemodulator, SIGNAL(WarningTextSignal(QString)),                    this,SLOT(WarningTextSlot(QString)));
-    connect(audiooqpskdemodulator, SIGNAL(EbNoMeasurmentSignal(double)),                  this,SLOT(EbNoSlot(double)));
-    connect(audiooqpskdemodulator, SIGNAL(PeakVolume(double)),                            this, SLOT(PeakVolumeSlot(double)));
-    connect(audiooqpskdemodulator, SIGNAL(OrgOverlapedBuffer(QVector<double>)),           ui->spectrumdisplay,SLOT(setFFTData(QVector<double>)));
-    connect(audiooqpskdemodulator, SIGNAL(Plottables(double,double,double)),              ui->spectrumdisplay,SLOT(setPlottables(double,double,double)));
-    connect(audiooqpskdemodulator, SIGNAL(SampleRateChanged(double)),                     ui->spectrumdisplay,SLOT(setSampleRate(double)));
-    connect(audiooqpskdemodulator, SIGNAL(ScatterPoints(QVector<cpx_type>)),              ui->scatterplot,SLOT(setData(QVector<cpx_type>)));
-    connect(ui->spectrumdisplay,   SIGNAL(CenterFreqChanged(double)),                     audiooqpskdemodulator,SLOT(CenterFreqChangedSlot(double)));
-    connect(audiooqpskdemodulator, SIGNAL(BitRateChanged(double)),                        datadeformatter,SLOT(setBitRate(double)));
-    connect(audiooqpskdemodulator, SIGNAL(BitRateChanged(double)),                        this,SLOT(bitRateChangedSlot(double)));
-    connect(audiooqpskdemodulator, SIGNAL(SignalStatus(bool)),                            datadeformatter,SLOT(SignalStatusSlot(bool)));
+    connect(oqpskdemod, SIGNAL(Plottables(double,double,double)),              this,SLOT(PlottablesSlot(double,double,double)));
+    connect(oqpskdemod, SIGNAL(SignalStatus(bool)),                            this,SLOT(SignalStatusSlot(bool)));
+    connect(oqpskdemod, SIGNAL(WarningTextSignal(QString)),                    this,SLOT(WarningTextSlot(QString)));
+    connect(oqpskdemod, SIGNAL(EbNoMeasurmentSignal(double)),                  this,SLOT(EbNoSlot(double)));
+    connect(oqpskdemod, SIGNAL(PeakVolume(double)),                            this, SLOT(PeakVolumeSlot(double)));
+    connect(oqpskdemod, SIGNAL(OrgOverlapedBuffer(QVector<double>)),           ui->spectrumdisplay,SLOT(setFFTData(QVector<double>)));
+    connect(oqpskdemod, SIGNAL(Plottables(double,double,double)),              ui->spectrumdisplay,SLOT(setPlottables(double,double,double)));
+    connect(oqpskdemod, SIGNAL(SampleRateChanged(double)),                     ui->spectrumdisplay,SLOT(setSampleRate(double)));
+    connect(oqpskdemod, SIGNAL(ScatterPoints(QVector<cpx_type>)),              ui->scatterplot,SLOT(setData(QVector<cpx_type>)));
+    connect(ui->spectrumdisplay,   SIGNAL(CenterFreqChanged(double)),                     oqpskdemod,SLOT(CenterFreqChangedSlot(double)));
+    connect(oqpskdemod, SIGNAL(BitRateChanged(double)),                        datadeformatter,SLOT(setBitRate(double)));
+    connect(oqpskdemod, SIGNAL(BitRateChanged(double)),                        this,SLOT(bitRateChangedSlot(double)));
+    connect(oqpskdemod, SIGNAL(SignalStatus(bool)),                            datadeformatter,SLOT(SignalStatusSlot(bool)));
+
+//direct connection for sound thread
+connect(jsound,SIGNAL(SoundEvent(double*,double*,int)),oqpskdemod,SLOT(demodFromStereoSoundEvent(double*,double*,int)),Qt::DirectConnection);
 
     //datadeformatter connections
     connect(datadeformatter,SIGNAL(DataCarrierDetect(bool)),this,SLOT(DataCarrierDetectStatusSlot(bool)));
-    connect(datadeformatter,SIGNAL(DataCarrierDetect(bool)),audiooqpskdemodulator,SLOT(DCDstatSlot(bool)));
-    connect(datadeformatter,SIGNAL(signalDSCAOpusPacket(QByteArray&)),opusAudioOut,SLOT(decode(QByteArray&)));
+    connect(datadeformatter,SIGNAL(DataCarrierDetect(bool)),oqpskdemod,SLOT(DCDstatSlot(bool)));
+connect(datadeformatter,SIGNAL(signalDSCAOpusPacket(QByteArray)),opusAudioOut,SLOT(decode(QByteArray)));
     connect(datadeformatter,SIGNAL(signalModeChanged(DSCADataDeFormatter::Mode)),this,SLOT(on_modeChanged(DSCADataDeFormatter::Mode)));
     connect(datadeformatter,SIGNAL(signalBER(double)),this,SLOT(on_BERstatus(double)));
-    connect(datadeformatter,SIGNAL(signalDSCARDSPacket(QByteArray&)),this,SLOT(DSCARDSPacketSlot(QByteArray&)));
+connect(datadeformatter,SIGNAL(signalDSCARDSPacket(QByteArray)),this,SLOT(DSCARDSPacketSlot(QByteArray)));
 
     //load settings
     QSettings settings("Jontisoft", "JDSCA");
@@ -104,13 +114,22 @@ MainWindow::MainWindow(QWidget *parent) :
     on_comboBoxdisplay_currentIndexChanged(ui->comboBoxdisplay->currentText());
     on_horizontalSlider_bw_sliderMoved(ui->horizontalSlider_bw->value());
 
-    //oqpsk
-    audiooqpskdemodulatorsettings.Fs=192000;
-    audiooqpskdemodulatorsettings.audio_device_in=settingsdialog->audioinputdevice;
-    audiooqpskdemodulatorsettings.freq_center=tmpfreq;
-    audiooqpskdemodulatorsettings.lockingbw=tmpbandwidth;
-    audiooqpskdemodulator->setSettings(audiooqpskdemodulatorsettings);
-    audiooqpskdemodulator->start();
+    //oqpsk setup
+    oqpskdemodulatorsettings.Fs=192000;
+    oqpskdemodulatorsettings.freq_center=tmpfreq;
+    oqpskdemodulatorsettings.lockingbw=tmpbandwidth;
+    oqpskdemod->setSettings(oqpskdemodulatorsettings);
+
+    //audio device sutup and start
+    jsound->iParameters.nChannels=2;
+    jsound->oParameters.nChannels=0;
+    jsound->sampleRate=192000;
+    jsound->audioformat=RTAUDIO_FLOAT64;
+    jsound->options.streamName="JDSCA";
+    jsound->bufferFrames=16384;
+    jsound->wantedInDeviceName=settingsdialog->WantedInSoundDevice;
+    jsound->Active(true);
+
 
     //Opusaudioout connections
     connect(opusAudioOut,SIGNAL(OpusDCDchanged(bool)),this,SLOT(OpusSignalStatusSlot(bool)));
@@ -130,9 +149,9 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
     //save settings
     QSettings settings("Jontisoft", "JDSCA");
-    settings.setValue("bandwidth", audiooqpskdemodulator->getBandwidth());
+    settings.setValue("bandwidth", oqpskdemod->getBandwidth());
     settings.setValue("comboBoxdisplay", ui->comboBoxdisplay->currentIndex());
-    settings.setValue("freq_center", audiooqpskdemodulator->getCurrentFreq());
+    settings.setValue("freq_center", oqpskdemod->getCurrentFreq());
     settings.setValue("frame_spectrum", ui->frame_spectrum->isVisible());
     settings.setValue("groupBox_scatterplot", ui->groupBox_scatterplot->isVisible());
 
@@ -247,20 +266,20 @@ void MainWindow::on_comboBoxdisplay_currentIndexChanged(const QString &arg1)
     ui->scatterplot->setDisksize(3);
     if(arg1=="Constellation")
     {
-        audiooqpskdemodulator->setScatterPointType(OqpskDemodulator::SPT_constellation);
+        oqpskdemod->setScatterPointType(OqpskDemodulator::SPT_constellation);
     }
     if(arg1=="Constellation 8")
     {
-        audiooqpskdemodulator->setScatterPointType(OqpskDemodulator::SPT_8constellation);
+        oqpskdemod->setScatterPointType(OqpskDemodulator::SPT_8constellation);
     }
     if(arg1=="Symbol phase")
     {
-        audiooqpskdemodulator->setScatterPointType(OqpskDemodulator::SPT_phaseoffsetest);
+        oqpskdemod->setScatterPointType(OqpskDemodulator::SPT_phaseoffsetest);
         ui->scatterplot->setDisksize(6);
     }
     if(arg1=="None")
     {
-        audiooqpskdemodulator->setScatterPointType(OqpskDemodulator::SPT_None);
+        oqpskdemod->setScatterPointType(OqpskDemodulator::SPT_None);
     }
 }
 
@@ -274,20 +293,20 @@ void MainWindow::acceptsettings()
 {
 
     ui->statusBar->clearMessage();
-    opusAudioOut->set_soundcard_name(settingsdialog->WantedOutSoundDevice);
-    if(audiooqpskdemodulatorsettings.audio_device_in!=settingsdialog->audioinputdevice)
+    opusAudioOut->set_soundcard_name(settingsdialog->WantedOutSoundDevice); 
+    if(jsound->wantedInDeviceName!=settingsdialog->WantedInSoundDevice)
     {
-        audiooqpskdemodulator->stop();
-        audiooqpskdemodulatorsettings.audio_device_in=settingsdialog->audioinputdevice;
-        audiooqpskdemodulatorsettings.freq_center=audiooqpskdemodulator->getCurrentFreq();
-        audiooqpskdemodulatorsettings.lockingbw=audiooqpskdemodulator->getBandwidth();
-        audiooqpskdemodulator->setSettings(audiooqpskdemodulatorsettings);
-        audiooqpskdemodulator->start();
+        jsound->Active(false);
+        jsound->wantedInDeviceName=settingsdialog->WantedInSoundDevice;
+        oqpskdemodulatorsettings.freq_center=oqpskdemod->getCurrentFreq();
+        oqpskdemodulatorsettings.lockingbw=oqpskdemod->getBandwidth();
+        oqpskdemod->setSettings(oqpskdemodulatorsettings);
+        jsound->Active(true);
     }
 
-    audiooqpskdemodulator->setCMA(settingsdialog->use_cma);
+    oqpskdemod->setCMA(settingsdialog->use_cma);
     datadeformatter->enableHardFECDecoderType(settingsdialog->use_hard_decoding);
-    audiooqpskdemodulator->setAFC(settingsdialog->use_tracking);
+    oqpskdemod->setAFC(settingsdialog->use_tracking);
 
 
 }
@@ -297,7 +316,7 @@ void MainWindow::ERRorslot(QString &error)
     ui->console->appendHtml("<font color=\"red\">"+error+"</font>");
 }
 
-void MainWindow::DSCARDSPacketSlot(QByteArray &ba)
+void MainWindow::DSCARDSPacketSlot(const QByteArray &ba)
 {
     if(ba.size()<2)return;
     QString PS=ba.mid(1,ba[0]);
@@ -364,5 +383,5 @@ void MainWindow::on_actionAbout_Qt_triggered()
 
 void MainWindow::on_horizontalSlider_bw_sliderMoved(int position)
 {
-    audiooqpskdemodulator->setBandwidth(position);
+    oqpskdemod->setBandwidth(position);
 }

@@ -479,7 +479,7 @@ PuncturedCode::PuncturedCode()
     depunture_ptr=0;
 }
 
-DSCADataDeFormatter::DSCADataDeFormatter(QObject *parent) : QIODevice(parent)
+DSCADataDeFormatter::DSCADataDeFormatter(QObject *parent) : QObject(parent)
 {
     ber=0;
 
@@ -611,36 +611,6 @@ DSCADataDeFormatter::~DSCADataDeFormatter()
 
 }
 
-bool DSCADataDeFormatter::Start()
-{
-    if(psinkdevice.isNull())return false;
-    QIODevice *out=psinkdevice.data();
-    out->open(QIODevice::WriteOnly);
-    return true;
-}
-
-void DSCADataDeFormatter::Stop()
-{
-    if(!psinkdevice.isNull())
-    {
-        QIODevice *out=psinkdevice.data();
-        out->close();
-    }
-}
-
-void DSCADataDeFormatter::ConnectSinkDevice(QIODevice *device)
-{
-    if(!device)return;
-    psinkdevice=device;
-    Start();
-}
-
-void DSCADataDeFormatter::DisconnectSinkDevice()
-{
-    Stop();
-    if(!psinkdevice.isNull())psinkdevice.clear();
-}
-
 void DSCADataDeFormatter::updateDCD()
 {
     //qDebug()<<datacdcountdown;
@@ -661,9 +631,11 @@ void DSCADataDeFormatter::updateDCD()
     emit signalBER(ber);
 }
 
-QByteArray &DSCADataDeFormatter::Decode(const QByteArray &soft_bits)//0 bit --> oldest bit
+void DSCADataDeFormatter::processDemodulatedSoftBits(const QByteArray &soft_bits)//0 bit --> oldest bit
 {
     decodedbytes.clear();
+
+    //qDebug()<<"DSCADataDeFormatter::processDemodulatedSoftBits"<<QThread::currentThreadId();
 
 
 //    //diff deenc test
@@ -1052,41 +1024,9 @@ QByteArray &DSCADataDeFormatter::Decode(const QByteArray &soft_bits)//0 bit --> 
 
     if(!datacd)decodedbytes.clear();
 
-    return decodedbytes;
 }
 
-qint64 DSCADataDeFormatter::readData(char *data, qint64 maxlen)
-{
-    Q_UNUSED(data);
-    Q_UNUSED(maxlen);
-    return 0;
-}
 
-qint64 DSCADataDeFormatter::writeData(const char *data, qint64 len)
-{
-    /*sbits.clear();
-    uchar *udata=(uchar*)data;
-    uchar auchar;
-    for(int i=0;i<len;i++)
-    {
-        auchar=udata[i];
-        for(int j=0;j<8;j++)
-        {
-            sbits.push_back(auchar&1);
-            auchar=auchar>>1;
-        }
-    }
-    Decode(sbits);*/
 
-    QByteArray ba(data,len);
-    Decode(ba);
 
-    if(!psinkdevice.isNull())
-    {
-        QIODevice *out=psinkdevice.data();
-        if(out->isOpen())out->write(decodedbytes);
-    }
-
-    return len;
-}
 

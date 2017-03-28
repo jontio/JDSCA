@@ -25,15 +25,7 @@ void SettingsDialog::poulatepublicvars()
 {
 
     //in
-    audioinputdevice=QAudioDeviceInfo::defaultInputDevice();
-    foreach (const QAudioDeviceInfo &deviceInfo, QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
-    {
-        if(deviceInfo.deviceName()==ui->comboBoxsoundcard->currentText())
-        {
-            audioinputdevice=deviceInfo;
-            break;
-        }
-    }
+    WantedInSoundDevice=ui->comboBoxsoundcard->currentText();
 
     //out
     WantedOutSoundDevice=ui->comboBoxsoundcard_out->currentText();
@@ -50,19 +42,15 @@ void SettingsDialog::poulatepublicvars()
 void SettingsDialog::populatesettings()
 {
 
-    //populate soundcard
-    ui->comboBoxsoundcard->clear();
-    foreach (const QAudioDeviceInfo &deviceInfo, QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
-        ui->comboBoxsoundcard->addItem(deviceInfo.deviceName());
-
     //rtaudio
     ui->comboBoxsoundcard_out->clear();
+    ui->comboBoxsoundcard->clear();
     TJCSound jcsound;
     SDevices devices=jcsound.Devices;
     for(unsigned int i=0;i<devices.NumberOfDevices;i++)
     {
-        if(devices.Device[i].outchannelcount==0)continue;
-        ui->comboBoxsoundcard_out->addItem(devices.Device[i].name);
+        if(devices.Device[i].outchannelcount>0)ui->comboBoxsoundcard_out->addItem(devices.Device[i].name);
+        if(devices.Device[i].inchannelcount>0)ui->comboBoxsoundcard->addItem(devices.Device[i].name);
     }
 
     //load settings
