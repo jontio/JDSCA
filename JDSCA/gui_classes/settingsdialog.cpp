@@ -43,14 +43,16 @@ void SettingsDialog::populatesettings()
 {
 
     //rtaudio
-    ui->comboBoxsoundcard_out->clear();
-    ui->comboBoxsoundcard->clear();
+    //on Raspberry and ALSA the devices cant always seem to be enumerated more than once so I cant clear these combo boxes just in case
+    //ui->comboBoxsoundcard_out->clear();
+    //ui->comboBoxsoundcard->clear();
     TJCSound jcsound;
     SDevices devices=jcsound.Devices;
     for(unsigned int i=0;i<devices.NumberOfDevices;i++)
     {
-        if(devices.Device[i].outchannelcount>0)ui->comboBoxsoundcard_out->addItem(devices.Device[i].name);
-        if(devices.Device[i].inchannelcount>0)ui->comboBoxsoundcard->addItem(devices.Device[i].name);
+        if(devices.Device[i].outchannelcount>0&&ui->comboBoxsoundcard_out->findText(devices.Device[i].name)<0)ui->comboBoxsoundcard_out->addItem(devices.Device[i].name);
+        if(devices.Device[i].inchannelcount>0&&ui->comboBoxsoundcard->findText(devices.Device[i].name)<0)ui->comboBoxsoundcard->addItem(devices.Device[i].name);
+
     }
 
     //load settings

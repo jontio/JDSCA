@@ -1,4 +1,4 @@
-#include "DSCADataDeFormatter.h"
+#include "dscadatadeformatter.h"
 #include <QtEndian>
 
 //--slip
@@ -521,7 +521,7 @@ DSCADataDeFormatter::DSCADataDeFormatter(QObject *parent) : QObject(parent)
     preambledetectorphaseinvariantimag.setPreamble(3780831379LL,32);//0x3780831379,0b11100001010110101110100010010011
     preambledetectorphaseinvariantreal.setPreamble(3780831379LL,32);//0x3780831379,0b11100001010110101110100010010011
 
-    mode=Mode::none;
+    mode=DSCADataDeFormatter::none;
     setSettings(1200,mode1);
 
 }

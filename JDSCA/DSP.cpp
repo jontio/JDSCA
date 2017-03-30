@@ -6,6 +6,8 @@
 
 //---------------------------------------------------------------------------
 
+using namespace std;
+
 TrigLookUp tringlookup;
 
 TrigLookUp::TrigLookUp()
@@ -1299,10 +1301,15 @@ double BitRateSearch::peaktest(const QVector<double> &samplebuffer,const QVector
     QVector<double> candidate_cost;
     QVector<double> candidate_rate;
     QVector<double> candidate_freq_offset;
+    //qDebug()<<" ";
     for(int i=0;i<best_x.size();i++)
     {
+        if(best_x[i]<0)continue;
+        //qDebug()<<best_x[i]<<((double)best_x[i])*hzperbin<<Fs<<((double)samplebuffer.size());
         for(int k=i+1;k<best_x.size();k++)
         {
+            if(best_x[k]<0)continue;
+
             double y1;
             double y2;
             double x1=best_x[i];
@@ -1331,10 +1338,9 @@ double BitRateSearch::peaktest(const QVector<double> &samplebuffer,const QVector
             if(ratio>max_ratio)continue;
             if(prominance<min_prominance)continue;
 
-            if(fabs(freq_offset)>(lockingbw/2.0))continue;
+            if(fabs(freq_offset)>((lockingbw/2.0)-0.25*(1.0+rate)))continue;//this means the signal fits in the blue band and takes into account bit rate
 
-
-        //    qDebug()<<"Rate = "<<rate<<" freq offset = "<<freq_offset<<" ratio = "<<ratio<<" prominance = "<<prominance;
+            //qDebug()<<"Rate = "<<rate<<" freq offset = "<<freq_offset<<" ratio = "<<ratio<<" prominance = "<<prominance;
 
             //look for best valid rate that matches this mesured rate
             best_rate=-1;

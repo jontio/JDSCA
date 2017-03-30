@@ -1,6 +1,7 @@
 #include "jconvolutionalcodec.h"
 
 #include <QDebug>
+#include <assert.h>
 
 JConvolutionalCodec::JConvolutionalCodec(QObject *parent) : QObject(parent)
 {  

@@ -3,6 +3,9 @@
 #include <QDebug>
 #include <QStandardPaths>
 
+#define SAMPLE_RATE_IN 192000
+#define BUFFER_FRAMES 16384
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -16,10 +19,10 @@ MainWindow::MainWindow(QWidget *parent) :
     jsound = new TJCSound(this);
     jsound->iParameters.nChannels=2;
     jsound->oParameters.nChannels=0;
-    jsound->sampleRate=192000;
+    jsound->sampleRate=SAMPLE_RATE_IN;
     jsound->audioformat=RTAUDIO_FLOAT64;
     jsound->options.streamName="JDSCA";
-    jsound->bufferFrames=16384;
+    jsound->bufferFrames=BUFFER_FRAMES;
 
     //create oqpsk demodulator
     oqpskdemod = new OqpskDemodulator(this);
@@ -115,7 +118,7 @@ connect(datadeformatter,SIGNAL(signalDSCARDSPacket(QByteArray)),this,SLOT(DSCARD
     on_horizontalSlider_bw_sliderMoved(ui->horizontalSlider_bw->value());
 
     //oqpsk setup
-    oqpskdemodulatorsettings.Fs=192000;
+    oqpskdemodulatorsettings.Fs=SAMPLE_RATE_IN;
     oqpskdemodulatorsettings.freq_center=tmpfreq;
     oqpskdemodulatorsettings.lockingbw=tmpbandwidth;
     oqpskdemod->setSettings(oqpskdemodulatorsettings);
@@ -123,10 +126,10 @@ connect(datadeformatter,SIGNAL(signalDSCARDSPacket(QByteArray)),this,SLOT(DSCARD
     //audio device sutup and start
     jsound->iParameters.nChannels=2;
     jsound->oParameters.nChannels=0;
-    jsound->sampleRate=192000;
+    jsound->sampleRate=SAMPLE_RATE_IN;
     jsound->audioformat=RTAUDIO_FLOAT64;
     jsound->options.streamName="JDSCA";
-    jsound->bufferFrames=16384;
+    jsound->bufferFrames=BUFFER_FRAMES;
     jsound->wantedInDeviceName=settingsdialog->WantedInSoundDevice;
     jsound->Active(true);
 
@@ -215,7 +218,7 @@ void MainWindow::PlottablesSlot(double freq_est,double freq_center,double bandwi
 void MainWindow::on_BERstatus(double ber)
 {
     QString str=(((QString)"%1% ").arg(ber*100.0,0, 'f', 0)).rightJustified(6,' ');
-    berlabel->setText("  BER: "+str);
+    berlabel->setText("  PE: "+str);
     //berlabel->setText(((QString)" BER: %1% ").arg((int)round(ber*100),2, 10, QChar('0')));
 }
 

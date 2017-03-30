@@ -21,6 +21,8 @@ CoarseFreqEstimate::CoarseFreqEstimate(QObject *parent) : QObject(parent)
 
     bitratesearch.setSetting(Fs,0.8,4,100,10,3.0,1.0,lockingbw);
 
+    wavletfilter.setSize(100);//how many bins are optimal?
+
 }
 
 void CoarseFreqEstimate::setSettings(int _coarsefreqest_fft_power,double _lockingbw,double _fb,double _Fs)
@@ -57,12 +59,31 @@ void CoarseFreqEstimate::setSettings(int _coarsefreqest_fft_power,double _lockin
     bitratesearch.validbitrates.push_back(72000);
     bitratesearch.validbitrates.push_back(82000);
     bitratesearch.validbitrates.push_back(94000);
-    bitratesearch.setSetting(Fs,0.2,10,10000.0/hzperbin,10,100.0,0.1,lockingbw);//smoothing has problems when freq is drifting so better to keep small i think
+    bitratesearch.setSetting(Fs,0.1,12,10.0/hzperbin,10,100.0,0.1,lockingbw);//smoothing has problems when freq is drifting so better to keep small i think
     //bitratesearch.setSetting(Fs,0.1,10,10000.0/hzperbin,10,100.0,1.0,lockingbw);
+
+    //debug_buffer2.resize(10*48000);
+    //debug_buffer2_ptr=0;
 }
+
 
 CoarseFreqEstimate::~CoarseFreqEstimate()
 {
+
+    //debug
+    /*QFile file("e:/audio2.dat");
+    if (file.open(QFile::WriteOnly | QFile::Truncate))
+    {
+        QDataStream dataout(&file);
+        for(int i=0;i<debug_buffer.size();i++)dataout<<debug_buffer[i];
+    }
+    QFile file2("e:/audio.dat");
+    if (file2.open(QFile::WriteOnly | QFile::Truncate))
+    {
+        QDataStream dataout(&file2);
+        for(int i=0;i<debug_buffer2.size();i++)dataout<<debug_buffer2[i];
+
+    }*/
 
     delete ifft;
     delete fft;
@@ -78,14 +99,27 @@ void CoarseFreqEstimate::ProcessBasebandData(const QVector<cpx_type> &data)
     //fft size must be even. 2^n is best
     assert(nfft==data.size());
 
-    //remove high frequencies then square and do fft and shift (0hz bin is at nfft/2)
-    fft->transform(data,out);
-    for(int i=startbin;i<=stopbin;i++)out[i]=0;
-    ifft->transform(out,in);
-    for(int i=0;i<nfft;i++)in[i]=in[i]*in[i];
+    //square and do fft, filter and shift (0hz bin is at nfft/2)
+    for(int i=0;i<nfft;i++)in[i]=data[i]*data[i];
     fft->transform(in,out);
-
+    wavletfilter.update(out);
     for(int i=0;i<nfft/2;i++)std::swap(out[i+nfft/2],out[i]);
+
+    //debug
+    /*static int debug_buffer_cnt=100;
+    if(debug_buffer_cnt>0)
+    {
+        debug_buffer.resize(nfft);
+        debug_buffer_cnt--;
+        for(int i=0;i<nfft;i++)debug_buffer[i]=abs(out[i]);
+    }
+    if(debug_buffer2_ptr<debug_buffer2.size())for(int i=0;i<nfft;i++)
+    {
+        if(debug_buffer2_ptr<debug_buffer2.size())debug_buffer2[debug_buffer2_ptr]=data[i].real();
+        debug_buffer2_ptr++;
+        if(debug_buffer2_ptr<debug_buffer2.size())debug_buffer2[debug_buffer2_ptr]=data[i].imag();
+        debug_buffer2_ptr++;
+    }*/
 
     //find peaks to find the symbol rate, we could also estimate the fgrequency here but we dont. We probably should as this is a better algo
     bitratesearch.update(out);

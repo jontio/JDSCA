@@ -148,6 +148,10 @@ OqpskDemodulator::OqpskDemodulator(QObject *parent)
     bpfupdatetimer->setSingleShot(true);
     connect(bpfupdatetimer,SIGNAL(timeout()),this,SLOT(setBandPassFilter()));
 
+    //this causes the first settings push to emit that Fs and fb have changed to others
+    Fs=-1;
+    fb=-1;
+
 }
 
 OqpskDemodulator::~OqpskDemodulator()

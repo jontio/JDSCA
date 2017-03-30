@@ -8,6 +8,9 @@
 
 #include "fftwrapper.h"
 
+#include <QFile>
+#include <QDataStream>
+
 typedef FFTWrapper<double> FFT;
 typedef std::complex<double> cpx_type;
 
@@ -40,6 +43,14 @@ private:
     int emptyingcountdown;
 
     BitRateSearch bitratesearch;
+
+    //debug
+    //QVector<double> debug_buffer;
+    //QVector<double> debug_buffer2;
+    //int debug_buffer2_ptr;
+
+    WavletFilter wavletfilter;
+
 
 };
 

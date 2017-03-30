@@ -843,5 +843,48 @@ public:
 private:
 };
 
+class WavletFilter
+{
+public:
+    WavletFilter()
+    {
+        ma= new MovingAverage(10);
+        masize=10;
+        gain_inv=1.0;
+    }
+    ~WavletFilter()
+    {
+        delete ma;
+    }
+    void setSize(int number)
+    {
+        delete ma;
+        ma= new MovingAverage(number);
+        masize=number;
+    }
+    void setGain(double gain)
+    {
+        gain_inv=1.0/gain;
+    }
+
+    void update(QVector<cpx_type> &data)
+    {
+        int loc;
+        int loc2;
+        for(int i=0;i<data.size()+masize;i++)
+        {
+            loc=i%data.size();
+            loc2=(i-masize/2)%data.size();
+            ma->Update(abs(data[loc]));
+
+            if((i>=(masize/2))&&(loc2>=0))data[loc2]/=qMax(ma->Val,gain_inv);
+        }
+    }
+
+    MovingAverage *ma;
+    int masize;
+    double gain_inv;
+};
+
 
 #endif

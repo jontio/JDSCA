@@ -12,6 +12,9 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets  printsupport
 TARGET = JDSCA
 TEMPLATE = app
 
+QMAKE_CXXFLAGS_RELEASE -= -O2
+QMAKE_CXXFLAGS_RELEASE += -O3
+
 #message("QT_ARCH is \"$$QT_ARCH\"");
 contains(QT_ARCH, i386) {
     #message("32-bit")
@@ -91,9 +94,7 @@ RC_FILE = jdsca.rc
 
 
 win32 {
-
 INCLUDEPATH +=../libcorrect/include
-
 contains(QT_ARCH, i386) {
     #message("32-bit")
 
@@ -102,16 +103,13 @@ contains(QT_ARCH, i386) {
     #message("64-bit")
     LIBS += -L$$PWD/../libcorrect/lib/64
 }
-
-    LIBS += -llibcorrect
-
-
 }
+LIBS += -llibcorrect
+
 
 # here we have libopus
 
 win32 {
-
 INCLUDEPATH +=../libopus-1.2-alpha/include
 contains(QT_ARCH, i386) {
     #message("32-bit")
@@ -120,10 +118,8 @@ contains(QT_ARCH, i386) {
     #message("64-bit")
     LIBS += -L$$PWD/../libopus-1.2-alpha/lib/64
 }
-
-    LIBS += -llibopus
-
 }
+LIBS += -llibopus
 
 # from here on this is for rtaudio if we include it
 
@@ -139,10 +135,11 @@ win32 {
 
 
 }
+#Select your audio system. For me ALSA seems the best on the Raspberry Pi3, the other ones I get problems
 unix {
-    DEFINES += __UNIX_JACK__ \
-            __LINUX_PULSE__ \
-            __LINUX_ALSA__
+#    DEFINES += __UNIX_JACK__
+#    DEFINES += __LINUX_PULSE__
+    DEFINES += __LINUX_ALSA__
 }
 macx {
     DEFINES += __MACOSX_CORE__ \
