@@ -1,7 +1,9 @@
 # JDSCA
 DSCA demodulator and decoder written in C++ Qt
 
-![](images/JDSCA.png)
+| ![](images/JDSCA.png)  |
+|:---:|
+| Running on Windows|
 
 [JMPX] can encode and modulate DSCA signals.
 
@@ -13,7 +15,9 @@ Precompiled binaries for Windows 64 bit can be downloaded from [Releases].
 
 It has been tested on Windows 7 and a Raspberry Pi3.
 
-![](images/JDSCA-on-a-pi3.png)
+| ![](images/JDSCA-on-a-pi3.png)  |
+|:---:|
+| Running on the Raspberry Pi 3 |
 
 For the Raspberry Pi 3 you will need to compile it yourself. librtl, libcorrect and libopus need to be installed along with qmake and the Qt5 libraries.
 
