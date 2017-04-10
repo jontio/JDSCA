@@ -9,7 +9,13 @@ For more information see http://jontio.zapto.org/hda1/jdsca.html
 
 ## Binaries
 
-Precompiled binaries can be downloaded from [Releases].
+Precompiled binaries for Windows 64 bit can be downloaded from [Releases].
+
+It has been tested on Windows 7 and a Raspberry Pi3.
+
+![](images/JDSCA-on-a-pi3.png)
+
+For the Raspberry Pi 3 you will need to compile it yourself. librtl, libcorrect and libopus need to be installed along with qmake and the Qt5 libraries.
 
 ## Directory structure
 

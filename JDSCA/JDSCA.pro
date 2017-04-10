@@ -93,7 +93,7 @@ unix {
     HEADERS  += /usr/include/rtl-sdr.h \
     /usr/include/rtl-sdr_export.h \
     /usr/local/include/correct.h \
-    /usr/local/include/opus/opus/opus.h
+    /usr/local/include/opus/opus.h
 #this is for the pi. srinking the window to fast on the pi seems to not work quite right and removes the menu bar
     DEFINES += __SLOW_SRINK_WINDOW__
 #on the pi I havn't got 192k to work so I just use 48k in this case
@@ -115,7 +115,8 @@ DISTFILES += \
     ../qcustomplot/changelog.txt \
     ../qcustomplot/GPL.txt \
     ../README.md \
-    ../images/JDSCA.png
+    ../images/JDSCA.png \
+    ../images/JDSCA-on-a-pi3.png
 
 win32 {
 RC_FILE = jdsca.rc

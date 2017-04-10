@@ -494,11 +494,19 @@ void MainWindow::RTL_status_timeout()
 {
     if(!sdr->active)
     {
-        if(!rtl_freq_label->isHidden())rtl_freq_label->hide();
+        if(!rtl_freq_label->isHidden())
+        {
+            rtl_freq_label->hide();
+            ui->doubleSpinBox_rtl_freq->hide();
+        }
     }
      else
      {
-        if(rtl_freq_label->isHidden())rtl_freq_label->show();
+        if(rtl_freq_label->isHidden())
+        {
+            rtl_freq_label->show();
+            ui->doubleSpinBox_rtl_freq->show();
+        }
      }
     QString str=(((QString)"  %1MHz  ").arg(((double)sdr->GetFrequency())/1000000.0,0, 'f', 2)).rightJustified(11,' ');
     rtl_freq_label->setText(str);
