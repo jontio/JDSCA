@@ -12,6 +12,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets  printsupport
 TARGET = JDSCA
 TEMPLATE = app
 
+QMAKE_CXXFLAGS += -std=c++11 -ffast-math
+
 QMAKE_CXXFLAGS_RELEASE -= -O2
 QMAKE_CXXFLAGS_RELEASE += -O3
 
@@ -39,12 +41,14 @@ SOURCES += main.cpp\
     ../kiss_fft130/kiss_fftr.c \
     gui_classes/settingsdialog.cpp \
     oqpskdemodulator.cpp \
-    ../kiss_fft130/kiss_fastfir.c \
     opusaudioout.cpp \
     JSound.cpp \
     ../rtaudio-4.1.2/RtAudio.cpp \
     jconvolutionalcodec.cpp \
-    dscadatadeformatter.cpp
+    dscadatadeformatter.cpp \
+    ../kiss_fft130/kiss_fastfir_complex.c \
+    ../kiss_fft130/kiss_fastfir_real.c \
+    sdr.cpp
 
 HEADERS  += mainwindow.h \
     coarsefreqestimate.h \
@@ -61,14 +65,41 @@ HEADERS  += mainwindow.h \
     ../kiss_fft130/kiss_fftr.h \
     gui_classes/settingsdialog.h \
     oqpskdemodulator.h \
-    ../kiss_fft130/kiss_fastfir.h \
-    ../libopus-1.2-alpha/include/opus/opus.h \
     opusaudioout.h \
     JSound.h \
     ../rtaudio-4.1.2/RtAudio.h \
-    ../libcorrect/include/correct.h \
     jconvolutionalcodec.h \
-    dscadatadeformatter.h
+    dscadatadeformatter.h \
+    ../kiss_fft130/kiss_fastfir_complex.h \
+    ../kiss_fft130/kiss_fastfir_real.h \
+    sdr.h
+
+
+win32 {
+#on windows this is where I put the headers of the 3rd party libraries that are linked to.
+    HEADERS  += ../librtlsdr/include/rtl-sdr.h \
+    ../librtlsdr/include/rtl-sdr_export.h \
+    ../libcorrect/include/correct.h \
+    ../libopus-1.2-alpha/include/opus/opus.h
+#on windows i have no problem with 192k sample sound cards so I use 192k
+    DEFINES += SAMPLE_RATE_IN=192000 \
+        BUFFER_FRAMES=16384
+}
+unix {
+# on the pi Qt creator doesn't seem know about /usr/include and /usr/local/include so I've added them here so it knows
+    INCLUDEPATH += /usr/include \
+    /usr/local/include
+#for me they are saved here but you dont need this
+    HEADERS  += /usr/include/rtl-sdr.h \
+    /usr/include/rtl-sdr_export.h \
+    /usr/local/include/correct.h \
+    /usr/local/include/opus/opus/opus.h
+#this is for the pi. srinking the window to fast on the pi seems to not work quite right and removes the menu bar
+    DEFINES += __SLOW_SRINK_WINDOW__
+#on the pi I havn't got 192k to work so I just use 48k in this case
+    DEFINES += SAMPLE_RATE_IN=48000 \
+        BUFFER_FRAMES=4096
+}
 
 FORMS    += mainwindow.ui \
     gui_classes/settingsdialog.ui
@@ -90,10 +121,32 @@ win32 {
 RC_FILE = jdsca.rc
 }
 
+#on windows you will have to build or obtain dlls for libsdr,libopus, and libcorrect
+
+# here we have librtlsdr
+
+
+win32 {
+#on windows the libsdr dlls are here
+INCLUDEPATH +=../librtlsdr/include
+contains(QT_ARCH, i386) {
+    #message("32-bit")
+
+    LIBS += -L$$PWD/../librtlsdr/32
+} else {
+    #message("64-bit")
+    LIBS += -L$$PWD/../librtlsdr/64
+}
+
+}
+
+LIBS += -lrtlsdr
+
 # here we have libcorrect
 
 
 win32 {
+#on windows the libcorrect dlls are here
 INCLUDEPATH +=../libcorrect/include
 contains(QT_ARCH, i386) {
     #message("32-bit")
@@ -103,13 +156,18 @@ contains(QT_ARCH, i386) {
     #message("64-bit")
     LIBS += -L$$PWD/../libcorrect/lib/64
 }
-}
 LIBS += -llibcorrect
+}
+
+unix {
+LIBS += -lcorrect
+}
 
 
 # here we have libopus
 
 win32 {
+#on windows the libopus dlls are here
 INCLUDEPATH +=../libopus-1.2-alpha/include
 contains(QT_ARCH, i386) {
     #message("32-bit")
@@ -118,8 +176,12 @@ contains(QT_ARCH, i386) {
     #message("64-bit")
     LIBS += -L$$PWD/../libopus-1.2-alpha/lib/64
 }
-}
 LIBS += -llibopus
+}
+
+unix {
+LIBS += -lopus
+}
 
 # from here on this is for rtaudio if we include it
 

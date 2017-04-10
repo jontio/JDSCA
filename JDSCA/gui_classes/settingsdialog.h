@@ -42,6 +42,12 @@ public:
     bool use_tracking;
     bool use_hard_decoding;
 
+    int rtl_device_index;
+    bool rtl_afc;
+    bool rtl_agc;
+    int rtl_subcarrier_freq_offset;//in Hz
+    double rtl_gain;
+
 private:
     Ui::SettingsDialog *ui;    
     void poulatepublicvars();

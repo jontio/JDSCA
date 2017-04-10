@@ -6,6 +6,8 @@ QSpectrumDisplay::QSpectrumDisplay(QWidget *parent)
     : QCustomPlot(parent)
 {
 
+    FrequencyOffset=0;
+
     fftr = new FFTr(pow(2,SPECTRUM_FFT_POWER),false);
     addGraph();
 
@@ -65,12 +67,19 @@ QSpectrumDisplay::QSpectrumDisplay(QWidget *parent)
 void QSpectrumDisplay::setSampleRate(double samplerate)
 {
     Fs=samplerate;
-    xAxis->setRange(0, Fs/2);
+    xAxis->setRange(FrequencyOffset, Fs/2.0+FrequencyOffset);
     hzperbin=Fs/nfft;
     for(int i=0;i<spec_freq_vals.size();i++)
     {
-        spec_freq_vals[i]=((double)i)*hzperbin;
+        spec_freq_vals[i]=((double)i)*hzperbin+FrequencyOffset;
     }    
+}
+
+void QSpectrumDisplay::setFrequencyOffset(double Hz)
+{
+    if(FrequencyOffset==Hz)return;
+    FrequencyOffset=Hz;
+    setSampleRate(Fs);
 }
 
 QSpectrumDisplay::~QSpectrumDisplay()
@@ -80,13 +89,14 @@ QSpectrumDisplay::~QSpectrumDisplay()
 
 void QSpectrumDisplay::setPlottables(double freq_est,double _freq_center,double bandwidth)
 {
+    _freq_center+=FrequencyOffset;
     freq_center=_freq_center;
     lockingbwbar_x[0]=freq_center;
     lockingbwbar_y[0]=yAxis->range().upper;
     lockingbwbar->setWidth(bandwidth);
     lockingbwbar->setData(lockingbwbar_x, lockingbwbar_y);
 
-    freqmarker_x[0]=freq_est;
+    freqmarker_x[0]=freq_est+FrequencyOffset;
     freqmarker_y[0]=0.75*(yAxis->range().upper-yAxis->range().lower)+yAxis->range().lower;
     freqmarker->setData(freqmarker_x, freqmarker_y);
 
@@ -147,6 +157,7 @@ void QSpectrumDisplay::mousePressEvent(QMouseEvent *event)
     {
         QPoint point=event->pos();
         double cursorX=xAxis->pixelToCoord(point.x());
+        cursorX-=FrequencyOffset;
         if(cursorX>(Fs/2-lockingbwbar->width()/2))
         {
             cursorX=(Fs/2-lockingbwbar->width()/2)-1.0;
@@ -168,6 +179,7 @@ void QSpectrumDisplay::mouseMoveEvent(QMouseEvent *event)
     {
         QPoint point=event->pos();
         double cursorX=xAxis->pixelToCoord(point.x());
+        cursorX-=FrequencyOffset;
         if(cursorX>(Fs/2-lockingbwbar->width()/2))
         {
             cursorX=(Fs/2-lockingbwbar->width()/2);

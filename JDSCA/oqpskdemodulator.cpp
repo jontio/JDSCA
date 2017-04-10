@@ -34,7 +34,7 @@ OqpskDemodulator::OqpskDemodulator(QObject *parent)
     signalthreshold=0.5;//lower is less sensitive
     SamplesPerSymbol=2.0*Fs/fb;
 
-    mixer_center.SetFreq(freq_center,Fs);
+    mixer_center.setfreq(freq_center,Fs);
     mixer2.SetFreq(freq_center,Fs);
 
     timer.start();
@@ -122,7 +122,7 @@ OqpskDemodulator::OqpskDemodulator(QObject *parent)
     ct_iir_loopfilter.init();
 
     //create a blue bpf for input
-    bluebpf=new QJFastFIRFilter(this);
+    bluebpf=new QJFastFIRFilter_Real(this);
     bluebpf->setKernel(QJFilterDesign::BandPassHanning(59500,77200,Fs,256-1));
 
     /*Matlab view
@@ -205,7 +205,7 @@ void OqpskDemodulator::setSettings(Settings _settings)
     bbcycbuff_ptr=0;
     coarsefreqestimate->setSettings(_settings.coarsefreqest_fft_power,2.0*lockingbw/2.0,fb,Fs);
 
-    mixer_center.SetFreq(freq_center,Fs);
+    mixer_center.setfreq(freq_center,Fs);
     mixer2.SetFreq(freq_center,Fs);
 
     delete agc;
@@ -214,7 +214,7 @@ void OqpskDemodulator::setSettings(Settings _settings)
     pointbuff.resize(300);
     pointbuff_ptr=0;
 
-    emit Plottables(mixer2.GetFreqHz(),mixer_center.GetFreqHz(),lockingbw);
+    emit Plottables(mixer2.GetFreqHz(),mixer_center.wt_freq,lockingbw);
 
     //not sure why st_timeing_error_systematic!!!
 
@@ -312,18 +312,18 @@ void OqpskDemodulator::CenterFreqChangedSlot(double freq_center)//spectrum displ
 
     QMutexLocker locker(mut);
 
-    mixer_center.SetFreq(freq_center,Fs);
-    if(afc)mixer2.SetFreq(mixer_center.GetFreqHz());
-    if((mixer2.GetFreqHz()-mixer_center.GetFreqHz())>(lockingbw/2.0))
+    mixer_center.setfreq(freq_center,Fs);
+    if(afc)mixer2.SetFreq(mixer_center.wt_freq);
+    if((mixer2.GetFreqHz()-mixer_center.wt_freq)>(lockingbw/2.0))
     {
-        mixer2.SetFreq(mixer_center.GetFreqHz()+(lockingbw/2.0));
+        mixer2.SetFreq(mixer_center.wt_freq+(lockingbw/2.0));
     }
-    if((mixer2.GetFreqHz()-mixer_center.GetFreqHz())<(-lockingbw/2.0))
+    if((mixer2.GetFreqHz()-mixer_center.wt_freq)<(-lockingbw/2.0))
     {
-        mixer2.SetFreq(mixer_center.GetFreqHz()-(lockingbw/2.0));
+        mixer2.SetFreq(mixer_center.wt_freq-(lockingbw/2.0));
     }
     for(int j=0;j<bbcycbuff.size();j++)bbcycbuff[j]=0;
-    emit Plottables(mixer2.GetFreqHz(),mixer_center.GetFreqHz(),lockingbw);
+    emit Plottables(mixer2.GetFreqHz(),mixer_center.wt_freq,lockingbw);
 
     bpfupdatetimer->start(100);
 }
@@ -339,23 +339,23 @@ void OqpskDemodulator::setBandwidth(double bandwidth_hz)
     //qDebug()<<"bandwidth_hz"<<bandwidth_hz;
     lockingbw=bandwidth_hz;
 
-    if((mixer_center.GetFreqHz()-lockingbw/2.0)<0)
+    if((mixer_center.wt_freq-lockingbw/2.0)<0)
     {
-        //lockingbw=2.0*mixer_center.GetFreqHz();
+        //lockingbw=2.0*mixer_center.wt_freq;
         CenterFreqChangedSlot(lockingbw/2.0);
     }
-    if((mixer_center.GetFreqHz()+lockingbw/2.0)>Fs/2.0)
+    if((mixer_center.wt_freq+lockingbw/2.0)>Fs/2.0)
     {
-        //lockingbw=2.0*(Fs/2.0-mixer_center.GetFreqHz());
+        //lockingbw=2.0*(Fs/2.0-mixer_center.wt_freq);
         CenterFreqChangedSlot(Fs/2.0-lockingbw/2.0);
     }
-    CenterFreqChangedSlot(mixer_center.GetFreqHz());
+    CenterFreqChangedSlot(mixer_center.wt_freq);
 }
 
 double  OqpskDemodulator::getCurrentFreq()
 {
     QMutexLocker locker(mut);
-    return mixer_center.GetFreqHz();
+    return mixer_center.wt_freq;
 }
 
 void OqpskDemodulator::demodData(const double *inputBuffer, qint64 nBufferFrames,int channels)
@@ -409,7 +409,7 @@ void OqpskDemodulator::demodData(const double *inputBuffer, qint64 nBufferFrames
         {
             if(!freqestimator_working)
             {
-                bbcycbuff[bbcycbuff_ptr]=mixer_center.WTCISValue()*dval;
+                bbcycbuff[bbcycbuff_ptr]=mixer_center.take_step_and_get_val()*dval;
                 bbcycbuff_ptr++;bbcycbuff_ptr%=bbnfft;
                 if(bbcycbuff_ptr==0)
                 {
@@ -587,7 +587,7 @@ void OqpskDemodulator::demodData(const double *inputBuffer, qint64 nBufferFrames
         //-----
 
         mixer2.WTnextFrame();
-        mixer_center.WTnextFrame();
+        //mixer_center.WTnextFrame();
         st_osc.WTnextFrame();
         st_osc_ref.WTnextFrame();
     }
@@ -613,7 +613,7 @@ void OqpskDemodulator::BitrateEstimate(double bitrate_est)//coarse est class cal
     QMutexLocker locker(mut);
     //qDebug()<<"change rate!!! to"<<bitrate_est;
     settings.fb=bitrate_est;
-    settings.freq_center=mixer_center.GetFreqHz();
+    settings.freq_center=mixer_center.wt_freq;
     settings.lockingbw=lockingbw;
     setSettings(settings);
 }
@@ -627,13 +627,13 @@ void OqpskDemodulator::FreqOffsetEstimateSlot(double freq_offset_est)//coarse es
 
     freqestimator_working=false;
 
-    if((mixer_center.GetFreqHz()+freq_offset_est)>Fs/2)freq_offset_est=0;
-    if((mixer_center.GetFreqHz()+freq_offset_est)<0)freq_offset_est=0;
+    if((mixer_center.wt_freq+freq_offset_est)>Fs/2)freq_offset_est=0;
+    if((mixer_center.wt_freq+freq_offset_est)<0)freq_offset_est=0;
 
     static int countdown=4;
     if(!dcd)
     {
-        mixer2.SetFreq(mixer_center.GetFreqHz()+freq_offset_est);
+        mixer2.SetFreq(mixer_center.wt_freq+freq_offset_est);
         //st_osc.SetFreq(st_osc_ref.GetFreqHz());//reset st frequency
 
      //anti lockup test
@@ -645,21 +645,21 @@ void OqpskDemodulator::FreqOffsetEstimateSlot(double freq_offset_est)//coarse es
         //cma.setSettings(24,0.00002 ,1);//24--> 12 symbols , 0.00002 is somewhat slow to converge
 
     }    
-    if((afc)&&(dcd)&&(fabs(mixer2.GetFreqHz()-mixer_center.GetFreqHz())>3.0))//got a sig, afc on, freq is getting a little to far out
+    if((afc)&&(dcd)&&(fabs(mixer2.GetFreqHz()-mixer_center.wt_freq)>3.0))//got a sig, afc on, freq is getting a little to far out
     {
         if(countdown>0)countdown--;
          else
          {
-            mixer_center.SetFreq(mixer2.GetFreqHz());
-            if(mixer_center.GetFreqHz()<lockingbw/2.0)mixer_center.SetFreq(lockingbw/2.0);
-            if(mixer_center.GetFreqHz()>(Fs/2.0-lockingbw/2.0))mixer_center.SetFreq(Fs/2.0-lockingbw/2.0);
+            mixer_center.setfreq(mixer2.GetFreqHz());
+            if(mixer_center.wt_freq<lockingbw/2.0)mixer_center.setfreq(lockingbw/2.0);
+            if(mixer_center.wt_freq>(Fs/2.0-lockingbw/2.0))mixer_center.setfreq(Fs/2.0-lockingbw/2.0);
             coarsefreqestimate->bigchange();
             for(int j=0;j<bbcycbuff.size();j++)bbcycbuff[j]=0;
             bbcycbuff_ptr=0;
             setBandPassFilter();
          }
     } else countdown=4;
-    emit Plottables(mixer2.GetFreqHz(),mixer_center.GetFreqHz(),lockingbw);
+    emit Plottables(mixer2.GetFreqHz(),mixer_center.wt_freq,lockingbw);
 
     emit EbNoMeasurmentSignal(mermeasure->MER);
     emit MSESignal(mse);
@@ -683,5 +683,5 @@ void OqpskDemodulator::setBandPassFilter()
     QMutexLocker locker(mut);
 
     coarsefreqestimate->setSettings(settings.coarsefreqest_fft_power,2.0*lockingbw/2.0,fb,Fs);
-    bluebpf->updateKernel(QJFilterDesign::BandPassHanning(mixer_center.GetFreqHz()-lockingbw/2.0,mixer_center.GetFreqHz()+lockingbw/2.0,Fs,bluebpf->getKernelSize()));
+    bluebpf->updateKernel(QJFilterDesign::BandPassHanning(mixer_center.wt_freq-lockingbw/2.0,mixer_center.wt_freq+lockingbw/2.0,Fs,bluebpf->getKernelSize()));
 }

@@ -105,8 +105,9 @@ private:
     //ct
     IIR ct_iir_loopfilter;
 
-    WaveTable mixer_center;
+    //WaveTable mixer_center;
     WaveTable mixer2;
+    WaveTableComplex mixer_center;
 
     CoarseFreqEstimate *coarsefreqestimate;
 
@@ -128,7 +129,7 @@ private:
     DelayThing<cpx_type> dt;
 
 
-    QJFastFIRFilter *bluebpf;
+    QJFastFIRFilter_Real *bluebpf;
     QTimer *bpfupdatetimer;
 
     CMA cma;

@@ -54,7 +54,7 @@
         </rect>
        </property>
        <property name="title">
-        <string>Soundcard in</string>
+        <string>Source</string>
        </property>
        <widget class="QComboBox" name="comboBoxsoundcard">
         <property name="geometry">
@@ -151,6 +151,149 @@
        <property name="text">
         <string>Decoder type</string>
        </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="tab_sdr">
+      <attribute name="title">
+       <string>RTL SDR</string>
+      </attribute>
+      <widget class="QGroupBox" name="groupBox_7">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>401</width>
+         <height>81</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>RTL SDR Device</string>
+       </property>
+       <widget class="QComboBox" name="comboRTLDevices">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>30</y>
+          <width>381</width>
+          <height>22</height>
+         </rect>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QGroupBox" name="groupBox_8">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>100</y>
+         <width>401</width>
+         <height>81</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string/>
+       </property>
+       <widget class="QCheckBox" name="checkBox_rtl_afc">
+        <property name="geometry">
+         <rect>
+          <x>290</x>
+          <y>12</y>
+          <width>91</width>
+          <height>19</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>AFC</string>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBox_rtl_agc">
+        <property name="geometry">
+         <rect>
+          <x>290</x>
+          <y>42</y>
+          <width>91</width>
+          <height>19</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>AGC</string>
+        </property>
+       </widget>
+       <widget class="QDoubleSpinBox" name="doubleSpinBox_rtl_gain">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>40</y>
+          <width>91</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="suffix">
+         <string> dB</string>
+        </property>
+        <property name="decimals">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <double>50.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>50.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_2">
+        <property name="geometry">
+         <rect>
+          <x>130</x>
+          <y>13</y>
+          <width>151</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Subcarrier Offset</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_3">
+        <property name="geometry">
+         <rect>
+          <x>130</x>
+          <y>42</y>
+          <width>101</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Gain</string>
+        </property>
+       </widget>
+       <widget class="QDoubleSpinBox" name="doubleSpinBox_rtl_subcarrier_freq_offset">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>10</y>
+          <width>91</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="suffix">
+         <string> kHz</string>
+        </property>
+        <property name="decimals">
+         <number>1</number>
+        </property>
+        <property name="minimum">
+         <double>0.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>99.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>1.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>0.000000000000000</double>
+        </property>
+       </widget>
       </widget>
      </widget>
     </widget>

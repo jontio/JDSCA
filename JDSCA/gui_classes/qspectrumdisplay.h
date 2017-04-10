@@ -28,6 +28,7 @@ public slots:
     void setPlottables(double freq_est,double freq_center,double bandwidth);
     void setFFTData(const QVector<double> &data);
     void setSampleRate(double samplerate);
+    void setFrequencyOffset(double Hz);
 protected:
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
@@ -47,6 +48,7 @@ private:
     double freq_center;
     double fb;
     double hzperbin;
+    double FrequencyOffset;
     QElapsedTimer timer;
 private slots:
 };

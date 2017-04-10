@@ -3,11 +3,13 @@
 
 #include <QMainWindow>
 #include <QLabel>
+#include <QDoubleSpinBox>
 #include "oqpskdemodulator.h"
 #include "gui_classes/settingsdialog.h"
 #include "dscadatadeformatter.h"
 #include "opusaudioout.h"
 #include "JSound.h"
+#include "sdr.h"
 
 namespace Ui {
 class MainWindow;
@@ -29,6 +31,8 @@ private:
     QLabel *modelabel;
     QLabel *berlabel;
     QLabel *bitratelabel;
+    QLabel *rtl_freq_label;
+    QDoubleSpinBox *rtl_freq_spin;
 
     //single audio device, one demodulator and some demod settings
     TJCSound *jsound;
@@ -43,6 +47,10 @@ private:
     void acceptsettings();
 
     QTimer *RDStimeout;
+
+    SDR *sdr;
+
+    QTimer *RTLFreqtimeout;
 
 
 protected:
@@ -72,6 +80,11 @@ private slots:
     void on_actionAbout_Qt_triggered();
     void on_horizontalSlider_bw_sliderMoved(int position);
 
+
+    void on_doubleSpinBox_rtl_freq_valueChanged(double arg1);
+
+    void RTL_status_timeout();
+    void RTL_freq_timeout();
 
 signals:
 

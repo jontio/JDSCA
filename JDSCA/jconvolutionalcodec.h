@@ -5,7 +5,6 @@
 #ifdef __cplusplus
   extern "C" {
 #endif
-#include "correct/convolutional/convolutional.h"
 #include "correct.h"
 #ifdef __cplusplus
   }

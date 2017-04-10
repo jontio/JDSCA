@@ -8,6 +8,9 @@
 
 using namespace std;
 
+//this is a problem. If WaveTableComplex is used like WaveTableComplex wt; in global then strange things happen like needing to init wt_cis twice. This doesn't happen if used in a class or as a pointer and created later.
+std::vector<cpx_type> WaveTableComplex::wt_cis;
+
 TrigLookUp tringlookup;
 
 TrigLookUp::TrigLookUp()
@@ -194,7 +197,6 @@ void  WaveTable::SetPhaseCycles(double phase_cycles)//untested
     WTptr=phase_cycles*((double)WTSIZE);
 }
 
-
 double WaveTable::GetPhaseDeg()
 {
     return (360.0*WTptr/((double)WTSIZE));
@@ -258,7 +260,6 @@ bool  WaveTable::IfHavePassedPoint(double FractionOfWave)
     return false;
 }
 
-
 bool  WaveTable::IfPassesPointNextTime_frames(double NumberOfFrames)
 {
     FractionOfSampleItPassesBy=NumberOfFrames-WTptr;
@@ -271,10 +272,6 @@ bool  WaveTable::IfPassesPointNextTime_frames(double NumberOfFrames)
     return false;
 }
 
-
-
-
-
 void  WaveTable::SetWTptr(double FractionOfWave,double PlusNumberOfFrames)
 {
     while(FractionOfWave>=1)FractionOfWave-=1;
@@ -286,7 +283,6 @@ void  WaveTable::SetWTptr(double FractionOfWave,double PlusNumberOfFrames)
 }
 
 //---------------------------------------------------------------------------
-
 
 
 FIR::FIR(int _NumberOfPoints)
@@ -386,14 +382,27 @@ AGC::AGC(double _SecondsToAveOver,double _Fs)
     for(int i=0;i<AGCMASz;i++)AGCMABuffer[i]=0;
     AGCMAPtr=0;
     AGCVal=0;
+    PrecisionDilutionCorrectCnt=AGCMASz;//correct rounding error every so often
 }
 
 double AGC::Update(double sig)
 {
+
+    if(PrecisionDilutionCorrectCnt)PrecisionDilutionCorrectCnt--;
+     else
+     {
+        AGCMASum=0;
+        for(int i=0;i<AGCMASz;++i)
+        {
+            AGCMASum+=AGCMABuffer[i];
+        }
+        PrecisionDilutionCorrectCnt=AGCMASz;
+     }
+
     AGCMASum=AGCMASum-AGCMABuffer[AGCMAPtr];
     AGCMASum=AGCMASum+fabs(sig);
     AGCMABuffer[AGCMAPtr]=fabs(sig);
-    AGCMAPtr++;AGCMAPtr%=AGCMASz;
+    AGCMAPtr++;if(AGCMAPtr>=AGCMASz)AGCMAPtr=0;
     AGCVal=1.414213562/fmax(AGCMASum/((double)AGCMASz),0.000001);
     AGCVal=fmax(AGCVal,0.000001);
     return AGCVal;
@@ -416,6 +425,7 @@ MovingAverage::MovingAverage(int number)
     for(int i=0;i<MASz;i++)MABuffer[i]=0;
     MAPtr=0;
     Val=0;
+    PrecisionDilutionCorrectCnt=MASz;//correct rounding error every so often
 }
 
 void MovingAverage::Zero()
@@ -426,22 +436,46 @@ void MovingAverage::Zero()
     MASum=0;
 }
 
+void MovingAverage::PrecisionDilutionCorrect()
+{
+    MASum=0;
+    for(int i=0;i<MASz;++i)
+    {
+        MASum+=MABuffer[i];
+    }
+}
+
 double MovingAverage::Update(double sig)
 {
+
+    if(PrecisionDilutionCorrectCnt>0)PrecisionDilutionCorrectCnt--;
+     else
+     {
+        PrecisionDilutionCorrect();
+        PrecisionDilutionCorrectCnt=MASz;
+     }
+
     MASum=MASum-MABuffer[MAPtr];
     MASum=MASum+fabs(sig);
     MABuffer[MAPtr]=fabs(sig);
-    MAPtr++;MAPtr%=MASz;
+    MAPtr++;if(MAPtr>=MASz)MAPtr=0;
     Val=MASum/((double)MASz);
     return Val;
 }
 
 double MovingAverage::UpdateSigned(double sig)
 {
+    if(PrecisionDilutionCorrectCnt>0)PrecisionDilutionCorrectCnt--;
+     else
+     {
+        PrecisionDilutionCorrect();
+        PrecisionDilutionCorrectCnt=MASz;
+     }
+
     MASum=MASum-MABuffer[MAPtr];
     MASum=MASum+(sig);
     MABuffer[MAPtr]=(sig);
-    MAPtr++;MAPtr%=MASz;
+    MAPtr++;if(MAPtr>=MASz)MAPtr=0;
     Val=MASum/((double)MASz);
     return Val;
 }
@@ -588,7 +622,6 @@ bool  BaceConverter::GetNextSymbol()
         SetOutNumberOfBits(8);
 }
 
-
 void  BaceConverter::SetInNumberOfBits(int NumberOfBits)
 {
         InMaxVal=((int)pow(2,NumberOfBits))-1;
@@ -602,7 +635,6 @@ void  BaceConverter::SetOutNumberOfBits(int NumberOfBits)
         NumberOfBitsForOutSize=NumberOfBits;
         Reset();
 }
-
 
 void  BaceConverter::Reset()
 {
@@ -778,57 +810,7 @@ double MERMeasure::Update(cpx_type &symbol)
 
 //---
 
-
-//---fast Hilbert filter
-QJHilbertFilter::QJHilbertFilter(QObject *parent)  : QJFastFIRFilter(parent)
-{
-    setSize(2048);
-}
-
-void QJHilbertFilter::setSize(int N)
-{
-    N=pow(2.0,(ceil(log2(N))));
-    assert(N>1);
-
-    kernel.clear();
-
-    kffsamp_t asample;
-    for(int i=0;i<N;i++)
-    {
-
-        if(i==N/2)
-        {
-            asample.i=0;
-            asample.r=-1;
-            kernel.push_back(asample);
-            continue;
-        }
-
-        if((i%2)==0)
-        {
-            asample.i=0;
-            asample.r=0;
-            kernel.push_back(asample);
-            continue;
-        }
-
-        asample.r=0;
-        asample.i=(2.0/((double)N))/(std::tan(M_PI*(((double)i)/((double)N)-0.5)));
-        kernel.push_back(asample);
-
-    }
-    setKernel(kernel);
-}
-
-QVector<kffsamp_t> QJHilbertFilter::getKernel()
-{
-    return kernel;
-}
-
-
-//---
-
-//---fast FIR
+//---fast FIR (real complex and hilbert)
 
 double sinc_normalized(double val)
 {
@@ -836,18 +818,17 @@ double sinc_normalized(double val)
     return (sin(M_PI*val)/(M_PI*val));
 }
 
-QVector<kffsamp_t> QJFilterDesign::LowPassHanning(double FrequencyCutOff, double SampleRate, int Length)
+QVector<kiss_fft_scalar> QJFilterDesign::LowPassHanning(double FrequencyCutOff, double SampleRate, int Length)
 {
-    QVector<kffsamp_t> h;
+    QVector<kiss_fft_scalar> h;
     if(Length<1)return h;
     if(!(Length%2))Length++;
     int j=1;
     for(int i=(-(Length-1)/2);i<=((Length-1)/2);i++)
     {
         double w=0.5*(1.0-cos(2.0*M_PI*((double)j)/((double)(Length))));
-        kffsamp_t x;
-        x.r=(w*(2.0*FrequencyCutOff/SampleRate)*sinc_normalized(2.0*FrequencyCutOff*((double)i)/SampleRate));
-        x.i=0;
+        kiss_fft_scalar x;
+        x=(w*(2.0*FrequencyCutOff/SampleRate)*sinc_normalized(2.0*FrequencyCutOff*((double)i)/SampleRate));
         h.push_back(x);
         j++;
     }
@@ -862,27 +843,23 @@ h = hanning(Length)' .* hideal;
 
 }
 
-QVector<kffsamp_t> QJFilterDesign::HighPassHanning(double FrequencyCutOff, double SampleRate, int Length)
+QVector<kiss_fft_scalar> QJFilterDesign::HighPassHanning(double FrequencyCutOff, double SampleRate, int Length)
 {
-    QVector<kffsamp_t> h;
+    QVector<kiss_fft_scalar> h;
     if(Length<1)return h;
     if(!(Length%2))Length++;
 
-    QVector<kffsamp_t> h1;
-    QVector<kffsamp_t> h2;
-    kffsamp_t zero;zero.i=0;zero.r=0;
-    kffsamp_t one;one.i=0;one.r=1.0;
-    h2.fill(zero,Length);
-    h2[(Length-1)/2]=one;
-
+    QVector<kiss_fft_scalar> h1;
+    QVector<kiss_fft_scalar> h2;
+    h2.fill(0,Length);
+    h2[(Length-1)/2]=1;
     h1=LowPassHanning(FrequencyCutOff,SampleRate,Length);
     if((h1.size()==Length)&&(h2.size()==Length))
     {
-        kffsamp_t val;
+        kiss_fft_scalar val;
         for(int i=0;i<Length;i++)
         {
-            val.r=h2[i].r-h1[i].r;
-            val.i=h2[i].i-h1[i].i;
+            val=h2[i]-h1[i];
             h.push_back(val);
         }
     }
@@ -890,25 +867,24 @@ QVector<kffsamp_t> QJFilterDesign::HighPassHanning(double FrequencyCutOff, doubl
     return h;
 }
 
-QVector<kffsamp_t> QJFilterDesign::BandPassHanning(double LowFrequencyCutOff,double HighFrequencyCutOff, double SampleRate, int Length)
+QVector<kiss_fft_scalar> QJFilterDesign::BandPassHanning(double LowFrequencyCutOff,double HighFrequencyCutOff, double SampleRate, int Length)
 {
-    QVector<kffsamp_t> h;
+    QVector<kiss_fft_scalar> h;
     if(Length<1)return h;
     if(!(Length%2))Length++;
 
-    QVector<kffsamp_t> h1;
-    QVector<kffsamp_t> h2;
+    QVector<kiss_fft_scalar> h1;
+    QVector<kiss_fft_scalar> h2;
 
     h2=LowPassHanning(HighFrequencyCutOff,SampleRate,Length);
     h1=LowPassHanning(LowFrequencyCutOff,SampleRate,Length);
 
     if((h1.size()==Length)&&(h2.size()==Length))
     {
-        kffsamp_t val;
+        kiss_fft_scalar val;
         for(int i=0;i<Length;i++)
         {
-            val.r=h2[i].r-h1[i].r;
-            val.i=h2[i].i-h1[i].i;
+            val=h2[i]-h1[i];
             h.push_back(val);
         }
     }
@@ -916,21 +892,27 @@ QVector<kffsamp_t> QJFilterDesign::BandPassHanning(double LowFrequencyCutOff,dou
     return h;
 }
 
-
 QJFastFIRFilter::QJFastFIRFilter(QObject *parent) : QObject(parent)
 {
-    QVector<kffsamp_t> tvect;
+    QVector<kiss_fft_cpx> tvect;
     kernelsize=0;
-    kffsamp_t asample;
+    kiss_fft_cpx asample;
     asample.r=1;
     asample.i=0;
     tvect.push_back(asample);
     nfft=2;
-    cfg=kiss_fastfir_alloc(tvect.data(),tvect.size(),&nfft,0,0);
+    cfg=kiss_fastfir_alloc_complex(tvect.data(),tvect.size(),&nfft,0,0);
     reset();
 }
 
-int QJFastFIRFilter::setKernel(QVector<kffsamp_t> imp_responce)
+int QJFastFIRFilter::setKernel(QVector<kiss_fft_scalar> imp_responce)
+{
+    int _nfft=imp_responce.size()*4;//rule of thumb
+    _nfft=pow(2.0,(ceil(log2(_nfft))));
+    return setKernel(imp_responce,_nfft);
+}
+
+int QJFastFIRFilter::setKernel(QVector<kiss_fft_cpx> imp_responce)
 {
     int _nfft=imp_responce.size()*4;//rule of thumb
     _nfft=pow(2.0,(ceil(log2(_nfft))));
@@ -944,13 +926,13 @@ int QJFastFIRFilter::setKernel(QVector<cpx_type> imp_responce)
     return setKernel(imp_responce,_nfft);
 }
 
-int QJFastFIRFilter::setKernel(QVector<kffsamp_t> imp_responce,int _nfft)
+int QJFastFIRFilter::setKernel(QVector<kiss_fft_cpx> imp_responce,int _nfft)
 {
     if(!imp_responce.size())return nfft;
     free(cfg);
     _nfft=pow(2.0,(ceil(log2(_nfft))));
     nfft=_nfft;
-    cfg=kiss_fastfir_alloc(imp_responce.data(),imp_responce.size(),&nfft,0,0);
+    cfg=kiss_fastfir_alloc_complex(imp_responce.data(),imp_responce.size(),&nfft,0,0);
     reset();
     kernelsize=imp_responce.size();
     return nfft;
@@ -962,20 +944,39 @@ int QJFastFIRFilter::setKernel(QVector<cpx_type> imp_responce,int _nfft)
     free(cfg);
     _nfft=pow(2.0,(ceil(log2(_nfft))));
     nfft=_nfft;
-    QVector<kffsamp_t> timp_responce;
+    QVector<kiss_fft_cpx> timp_responce;
     timp_responce.resize(imp_responce.size());
     for(int i=0;i<imp_responce.size();i++)
     {
         timp_responce[i].r=imp_responce[i].real();
         timp_responce[i].i=imp_responce[i].imag();
     }
-    cfg=kiss_fastfir_alloc(timp_responce.data(),timp_responce.size(),&nfft,0,0);
+    cfg=kiss_fastfir_alloc_complex(timp_responce.data(),timp_responce.size(),&nfft,0,0);
     reset();
     kernelsize=timp_responce.size();
     return nfft;
 }
 
-int QJFastFIRFilter::updateKernel(const QVector<kffsamp_t> &imp_responce)
+int QJFastFIRFilter::setKernel(QVector<kiss_fft_scalar> imp_responce,int _nfft)
+{
+    if(!imp_responce.size())return nfft;
+    free(cfg);
+    _nfft=pow(2.0,(ceil(log2(_nfft))));
+    nfft=_nfft;
+    QVector<kiss_fft_cpx> timp_responce;
+    timp_responce.resize(imp_responce.size());
+    for(int i=0;i<imp_responce.size();i++)
+    {
+        timp_responce[i].r=imp_responce[i];
+        timp_responce[i].i=0;
+    }
+    cfg=kiss_fastfir_alloc_complex(timp_responce.data(),timp_responce.size(),&nfft,0,0);
+    reset();
+    kernelsize=timp_responce.size();
+    return nfft;
+}
+
+int QJFastFIRFilter::updateKernel(const QVector<kiss_fft_cpx> &imp_responce)
 {
     assert(imp_responce.size()>0);
     if(kernelsize!=imp_responce.size())
@@ -985,7 +986,7 @@ int QJFastFIRFilter::updateKernel(const QVector<kffsamp_t> &imp_responce)
 
     size_t nfft=cfg->nfft;
     size_t  n_imp_resp=imp_responce.size();
-    const kffsamp_t * imp_resp=imp_responce.data();
+    const kiss_fft_cpx * imp_resp=imp_responce.data();
 
     assert((((int)nfft) - ((int)n_imp_resp) + 1)>=0);
 
@@ -996,7 +997,7 @@ int QJFastFIRFilter::updateKernel(const QVector<kffsamp_t> &imp_responce)
         cfg->tmpbuf[ nfft - n_imp_resp + 1 + i ] = imp_resp[ i ];
     }
 
-    FFTFWD(cfg->fftcfg,cfg->tmpbuf,cfg->fir_freq_resp);
+    kiss_fft(cfg->fftcfg,cfg->tmpbuf,cfg->fir_freq_resp);
 
     /* TODO: this won't work for fixed point */
     float scale = 1.0 / ((float)cfg->nfft);
@@ -1040,7 +1041,51 @@ int QJFastFIRFilter::updateKernel(const QVector<cpx_type> &imp_responce)
         cfg->tmpbuf[ nfft - n_imp_resp + 1 + i ].i = imp_responce[ i ].imag();
     }
 
-    FFTFWD(cfg->fftcfg,cfg->tmpbuf,cfg->fir_freq_resp);
+    kiss_fft(cfg->fftcfg,cfg->tmpbuf,cfg->fir_freq_resp);
+
+    /* TODO: this won't work for fixed point */
+    float scale = 1.0 / ((float)cfg->nfft);
+
+    for (size_t i=0; i < cfg->n_freq_bins; ++i ) {
+    #ifdef USE_SIMD
+        cfg->fir_freq_resp[i].r *= _mm_set1_ps(scale);
+        cfg->fir_freq_resp[i].i *= _mm_set1_ps(scale);
+    #else
+        cfg->fir_freq_resp[i].r *= scale;
+        cfg->fir_freq_resp[i].i *= scale;
+    #endif
+    }
+
+
+    return nfft;
+
+
+}
+
+int QJFastFIRFilter::updateKernel(const QVector<kiss_fft_scalar> &imp_responce)
+{
+    assert(imp_responce.size()>0);
+    if(kernelsize!=imp_responce.size())
+    {
+        return setKernel(imp_responce);
+    }
+
+    size_t nfft=cfg->nfft;
+    size_t  n_imp_resp=imp_responce.size();
+
+    assert((((int)nfft) - ((int)n_imp_resp) + 1)>=0);
+
+    /*zero pad in the middle to left-rotate the impulse response
+      This puts the scrap samples at the end of the inverse fft'd buffer */
+    cfg->tmpbuf[0].r = imp_responce[ n_imp_resp - 1 ];
+    cfg->tmpbuf[0].i = 0;
+    for (size_t i=0;i<n_imp_resp - 1; ++i)
+    {
+        cfg->tmpbuf[ nfft - n_imp_resp + 1 + i ].r = imp_responce[ i ];
+        cfg->tmpbuf[ nfft - n_imp_resp + 1 + i ].i = 0;
+    }
+
+    kiss_fft(cfg->fftcfg,cfg->tmpbuf,cfg->fir_freq_resp);
 
     /* TODO: this won't work for fixed point */
     float scale = 1.0 / ((float)cfg->nfft);
@@ -1063,25 +1108,28 @@ int QJFastFIRFilter::updateKernel(const QVector<cpx_type> &imp_responce)
 
 void QJFastFIRFilter::reset()
 {
-    kffsamp_t asample;
+    kiss_fft_cpx asample;
     asample.r=0;
     asample.i=0;
-    remainder.fill(asample,nfft*2);
+    remainder.assign(nfft*2,asample);
     idx_inbuf=0;
     remainder_ptr=nfft;
 
-
     single_input_output_buf_ptr=0;
-    single_input_output_buf.fill(asample,nfft);
-
+    single_input_output_buf.assign(nfft,asample);
 }
 
-void QJFastFIRFilter::Update(QVector<kffsamp_t> &data)
+void QJFastFIRFilter::Update(QVector<kiss_fft_cpx> &data)
 {
     Update(data.data(), data.size());
 }
 
-void QJFastFIRFilter::Update(kffsamp_t *data,int Size)
+void QJFastFIRFilter::Update(std::vector<kiss_fft_cpx> &data)
+{
+    Update(data.data(), data.size());
+}
+
+void QJFastFIRFilter::Update(kiss_fft_cpx *data,int Size)
 {
 
     //ensure enough storage
@@ -1092,11 +1140,11 @@ void QJFastFIRFilter::Update(kffsamp_t *data,int Size)
     }
 
     //add data to storage
-    memcpy ( inbuf.data()+idx_inbuf, data, sizeof(kffsamp_t)*Size );
+    memcpy ( inbuf.data()+idx_inbuf, data, sizeof(kiss_fft_cpx)*Size );
     size_t nread=Size;
 
     //fast fir of storage
-    size_t nwrite=kiss_fastfir(cfg, inbuf.data(), outbuf.data(),nread,&idx_inbuf);
+    size_t nwrite=kiss_fastfir_complex(cfg, inbuf.data(), outbuf.data(),nread,&idx_inbuf);
 
     int currentwantednum=Size;
     int numfromremainder=std::min(currentwantednum,remainder_ptr);
@@ -1104,7 +1152,7 @@ void QJFastFIRFilter::Update(kffsamp_t *data,int Size)
     //return as much as posible from remainder buffer
     if(numfromremainder>0)
     {
-        memcpy ( data, remainder.data(), sizeof(kffsamp_t)*numfromremainder );
+        memcpy ( data, remainder.data(), sizeof(kiss_fft_cpx)*numfromremainder );
 
         currentwantednum-=numfromremainder;
         data+=numfromremainder;
@@ -1112,7 +1160,7 @@ void QJFastFIRFilter::Update(kffsamp_t *data,int Size)
         if(numfromremainder<remainder_ptr)
         {
             remainder_ptr-=numfromremainder;
-            memcpy ( remainder.data(), remainder.data()+numfromremainder, sizeof(kffsamp_t)*remainder_ptr );
+            memcpy ( remainder.data(), remainder.data()+numfromremainder, sizeof(kiss_fft_cpx)*remainder_ptr );
         } else remainder_ptr=0;
     }
 
@@ -1120,7 +1168,7 @@ void QJFastFIRFilter::Update(kffsamp_t *data,int Size)
     int numfromoutbuf=std::min(currentwantednum,(int)nwrite);
     if(numfromoutbuf>0)
     {
-        memcpy ( data, outbuf.data(), sizeof(kffsamp_t)*numfromoutbuf );
+        memcpy ( data, outbuf.data(), sizeof(kiss_fft_cpx)*numfromoutbuf );
         currentwantednum-=numfromoutbuf;
         data+=numfromoutbuf;
     }
@@ -1128,7 +1176,7 @@ void QJFastFIRFilter::Update(kffsamp_t *data,int Size)
     //any left over is added to remainder buffer
     if(((size_t)numfromoutbuf<nwrite)&&(nwrite>0))
     {
-        memcpy ( remainder.data()+remainder_ptr, outbuf.data()+numfromoutbuf, sizeof(kffsamp_t)*(nwrite-numfromoutbuf) );
+        memcpy ( remainder.data()+remainder_ptr, outbuf.data()+numfromoutbuf, sizeof(kiss_fft_cpx)*(nwrite-numfromoutbuf) );
         remainder_ptr+=(nwrite-numfromoutbuf);
     }
 
@@ -1148,9 +1196,9 @@ QJFastFIRFilter::~QJFastFIRFilter()
     free(cfg);
 }
 
-kffsamp_t QJFastFIRFilter::Update_Single(kffsamp_t signal)
+kiss_fft_cpx QJFastFIRFilter::Update_Single(kiss_fft_cpx signal)
 {
-    kffsamp_t out_signal=single_input_output_buf[single_input_output_buf_ptr];
+    kiss_fft_cpx out_signal=single_input_output_buf[single_input_output_buf_ptr];
     single_input_output_buf[single_input_output_buf_ptr]=signal;
     single_input_output_buf_ptr++;single_input_output_buf_ptr%=single_input_output_buf.size();
     if(single_input_output_buf_ptr==0)Update(single_input_output_buf.data(),single_input_output_buf.size());
@@ -1169,15 +1217,313 @@ cpx_type QJFastFIRFilter::Update_Single(cpx_type signal)
 
 double QJFastFIRFilter::Update_Single(double signal)
 {
-    kffsamp_t out_signal=single_input_output_buf[single_input_output_buf_ptr];
-    kffsamp_t tsig;tsig.i=0;tsig.r=signal;
+    kiss_fft_cpx out_signal=single_input_output_buf[single_input_output_buf_ptr];
+    kiss_fft_cpx tsig;tsig.i=0;tsig.r=signal;
     single_input_output_buf[single_input_output_buf_ptr]=tsig;
     single_input_output_buf_ptr++;single_input_output_buf_ptr%=single_input_output_buf.size();
     if(single_input_output_buf_ptr==0)Update(single_input_output_buf.data(),single_input_output_buf.size());
     return out_signal.r;
 }
 
+kiss_fft_cpx QJFastFIRFilter::Update_Single_c_out(double signal)
+{
+
+
+    kiss_fft_cpx out_signal=single_input_output_buf[single_input_output_buf_ptr];
+    kiss_fft_cpx tsig;tsig.i=0;tsig.r=signal;
+    single_input_output_buf[single_input_output_buf_ptr]=tsig;
+    single_input_output_buf_ptr++;single_input_output_buf_ptr%=single_input_output_buf.size();
+    if(single_input_output_buf_ptr==0)Update(single_input_output_buf.data(),single_input_output_buf.size());
+    return out_signal;
+
+}
+
+cpx_type QJFastFIRFilter::Update_Single_c_out2(double signal)
+{
+    cpx_type out_signal=cpx_type(single_input_output_buf[single_input_output_buf_ptr].r,single_input_output_buf[single_input_output_buf_ptr].i);
+    kiss_fft_cpx tsig;tsig.i=0;tsig.r=signal;
+    single_input_output_buf[single_input_output_buf_ptr]=tsig;
+    single_input_output_buf_ptr++;single_input_output_buf_ptr%=single_input_output_buf.size();
+    if(single_input_output_buf_ptr==0)Update(single_input_output_buf.data(),single_input_output_buf.size());
+    return out_signal;
+}
+
 //-----------
+
+//real fast fir
+
+QJFastFIRFilter_Real::QJFastFIRFilter_Real(QObject *parent) : QObject(parent)
+{
+    std::vector<kiss_fft_scalar> tvect;
+    kernelsize=0;
+    kiss_fft_scalar asample;
+    asample=1;
+    tvect.push_back(asample);
+    nfft=2;
+    cfg=kiss_fastfir_alloc_real(tvect.data(),tvect.size(),&nfft,0,0);
+    reset();
+}
+
+QJFastFIRFilter_Real::~QJFastFIRFilter_Real()
+{
+    free(cfg);
+}
+
+void QJFastFIRFilter_Real::reset()
+{
+    kiss_fft_scalar asample;
+    asample=0;
+    remainder.assign(nfft*2,asample);
+    idx_inbuf=0;
+    remainder_ptr=nfft;
+
+
+    single_input_output_buf_ptr=0;
+    single_input_output_buf.assign(nfft,asample);
+
+}
+
+int QJFastFIRFilter_Real::setKernel(QVector<kiss_fft_scalar> imp_responce)
+{
+    int _nfft=imp_responce.size()*4;//rule of thumb
+    _nfft=pow(2.0,(ceil(log2(_nfft))));
+    return setKernel(imp_responce,_nfft);
+}
+
+int QJFastFIRFilter_Real::setKernel(QVector<kiss_fft_scalar> imp_responce,int _nfft)
+{
+    if(!imp_responce.size())return nfft;
+    free(cfg);
+    _nfft=pow(2.0,(ceil(log2(_nfft))));
+    nfft=_nfft;
+    cfg=kiss_fastfir_alloc_real(imp_responce.data(),imp_responce.size(),&nfft,0,0);
+    reset();
+    kernelsize=imp_responce.size();
+    return nfft;
+}
+
+void QJFastFIRFilter_Real::Update(std::vector<kiss_fft_scalar> &data)
+{
+    Update(data.data(), data.size());
+}
+
+void QJFastFIRFilter_Real::Update(kiss_fft_scalar *data,int Size)
+{
+
+    //ensure enough storage
+    if((inbuf.size()-idx_inbuf)<(size_t)Size)
+    {
+        inbuf.resize(Size+nfft);
+        outbuf.resize(Size+nfft);
+    }
+
+    //add data to storage
+    memcpy ( inbuf.data()+idx_inbuf, data, sizeof(kiss_fft_scalar)*Size );
+    size_t nread=Size;
+
+    //fast fir of storage
+    size_t nwrite=kiss_fastfir_real(cfg, inbuf.data(), outbuf.data(),nread,&idx_inbuf);
+
+    int currentwantednum=Size;
+    int numfromremainder=std::min(currentwantednum,remainder_ptr);
+
+    //return as much as posible from remainder buffer
+    if(numfromremainder>0)
+    {
+        memcpy ( data, remainder.data(), sizeof(kiss_fft_scalar)*numfromremainder );
+
+        currentwantednum-=numfromremainder;
+        data+=numfromremainder;
+
+        if(numfromremainder<remainder_ptr)
+        {
+            remainder_ptr-=numfromremainder;
+            memcpy ( remainder.data(), remainder.data()+numfromremainder, sizeof(kiss_fft_scalar)*remainder_ptr );
+        } else remainder_ptr=0;
+    }
+
+    //then return stuff from output buffer
+    int numfromoutbuf=std::min(currentwantednum,(int)nwrite);
+    if(numfromoutbuf>0)
+    {
+        memcpy ( data, outbuf.data(), sizeof(kiss_fft_scalar)*numfromoutbuf );
+        currentwantednum-=numfromoutbuf;
+        data+=numfromoutbuf;
+    }
+
+    //any left over is added to remainder buffer
+    if(((size_t)numfromoutbuf<nwrite)&&(nwrite>0))
+    {
+        memcpy ( remainder.data()+remainder_ptr, outbuf.data()+numfromoutbuf, sizeof(kiss_fft_scalar)*(nwrite-numfromoutbuf) );
+        remainder_ptr+=(nwrite-numfromoutbuf);
+    }
+
+
+    //if currentwantednum>0 then some items were not changed, this should not happen
+    //we should anyways have enough to return but if we dont this happens. this should be avoided else a discontinuity of frames occurs. set remainder to zero and set remainder_ptr to nfft before running to avoid this
+    if(currentwantednum>0)
+    {
+        qDebug()<<"Error: user wants "<<currentwantednum<<" more items from fir filter!";
+        remainder_ptr+=currentwantednum;
+    }
+
+}
+
+double QJFastFIRFilter_Real::Update_Single(kiss_fft_scalar signal)
+{
+    kiss_fft_scalar out_signal=single_input_output_buf[single_input_output_buf_ptr];
+    single_input_output_buf[single_input_output_buf_ptr]=signal;
+    single_input_output_buf_ptr++;if(single_input_output_buf_ptr>=single_input_output_buf.size())single_input_output_buf_ptr=0;
+    if(single_input_output_buf_ptr==0)Update(single_input_output_buf.data(),single_input_output_buf.size());
+    return out_signal;
+}
+
+int QJFastFIRFilter_Real::updateKernel(const QVector<kiss_fft_scalar> &imp_responce)
+{
+    assert(imp_responce.size()>0);
+    if(kernelsize!=imp_responce.size())
+    {
+        return setKernel(imp_responce);
+    }
+
+    size_t nfft=cfg->nfft;
+    size_t  n_imp_resp=imp_responce.size();
+
+    assert((((int)nfft) - ((int)n_imp_resp) + 1)>=0);
+
+    /*zero pad in the middle to left-rotate the impulse response
+      This puts the scrap samples at the end of the inverse fft'd buffer */
+    cfg->tmpbuf[0] = imp_responce[ n_imp_resp - 1 ];
+    for (size_t i=0;i<n_imp_resp - 1; ++i)
+    {
+        cfg->tmpbuf[ nfft - n_imp_resp + 1 + i ] = imp_responce[ i ];
+    }
+
+    kiss_fftr(cfg->fftcfg,cfg->tmpbuf,cfg->fir_freq_resp);
+
+    /* TODO: this won't work for fixed point */
+    float scale = 1.0 / ((float)cfg->nfft);
+
+    for (size_t i=0; i < cfg->n_freq_bins; ++i ) {
+    #ifdef USE_SIMD
+        cfg->fir_freq_resp[i].r *= _mm_set1_ps(scale);
+        cfg->fir_freq_resp[i].i *= _mm_set1_ps(scale);
+    #else
+        cfg->fir_freq_resp[i].r *= scale;
+        cfg->fir_freq_resp[i].i *= scale;
+    #endif
+    }
+
+
+    return nfft;
+
+
+}
+
+//------
+
+//---fast Hilbert filter (actually a analytical function creator so it is a hilbert transform multiplied by imaginary one and this is added to the real input)
+QJHilbertFilter::QJHilbertFilter(QObject *parent)  : QJFastFIRFilter(parent)
+{
+    setSize(2048);
+}
+
+void QJHilbertFilter::setSize(int N)
+{
+    N=pow(2.0,(ceil(log2(N))));
+    assert(N>1);
+
+    kernel.clear();
+
+    cpx_type asample;
+    for(int i=0;i<N;i++)
+    {
+
+        if(i==N/2)
+        {
+            //asample.i=0;
+            //asample.r=-1;
+            asample=cpx_type(-1,0);
+            kernel.push_back(asample);
+            continue;
+        }
+
+        if((i%2)==0)
+        {
+            //asample.i=0;
+            //asample.r=0;
+            asample=cpx_type(0,0);
+            kernel.push_back(asample);
+            continue;
+        }
+
+        //asample.r=0;
+        //asample.i=(2.0/((double)N))/(std::tan(M_PI*(((double)i)/((double)N)-0.5)));
+        asample=cpx_type(0,(2.0/((double)N))/(std::tan(M_PI*(((double)i)/((double)N)-0.5))));
+        kernel.push_back(asample);
+
+    }
+
+    //flip real imaginary. for some reason I got the kernel calulations back to front
+    // i think that was due to not being able to spin the phasors the other way
+    for(int k=0;k<kernel.size();k++)kernel[k]=cpx_type(kernel[k].imag(),kernel[k].real());
+
+    setKernel(kernel);
+}
+
+QVector<cpx_type> QJHilbertFilter::getKernel()
+{
+    return kernel;
+}
+
+void QJHilbertFilter::setSecondFilterKernel(QVector<kiss_fft_scalar> imp_responce)
+{
+    //convolute the two kernels
+    QVector<cpx_type> imp_responce_combined;
+    imp_responce_combined.resize(imp_responce.size()+kernel.size()-1);
+    QVector<cpx_type> buff;
+    buff.fill(0,kernel.size());
+    for(int i=0;i<imp_responce_combined.size();i++)
+    {
+        for(int k=buff.size()-2;k>=0;k--)buff[k+1]=buff[k];
+        if(i<imp_responce.size())buff[0]=imp_responce[i];
+         else buff[0]=0;
+        cpx_type val=0;
+        for(int j=0;j<kernel.size();j++)
+        {
+            val+=buff[j]*kernel[j];
+        }
+        imp_responce_combined[i]=val;
+    }
+    updateKernel(imp_responce_combined);
+}
+
+void QJHilbertFilter::setSecondFilterKernel(QVector<cpx_type> imp_responce)
+{
+    //convolute the two kernels
+    QVector<cpx_type> imp_responce_combined;
+    imp_responce_combined.resize(imp_responce.size()+kernel.size()-1);
+    QVector<cpx_type> buff;
+    buff.fill(0,kernel.size());
+    for(int i=0;i<imp_responce_combined.size();i++)
+    {
+        for(int k=buff.size()-2;k>=0;k--)buff[k+1]=buff[k];
+        if(i<imp_responce.size())buff[0]=imp_responce[i];
+         else buff[0]=0;
+        cpx_type val=0;
+        for(int j=0;j<kernel.size();j++)
+        {
+            val+=buff[j]*kernel[j];
+        }
+
+        imp_responce_combined[i]=val;
+    }
+    updateKernel(imp_responce_combined);
+}
+
+
+//---
+
 
 
 #include <QDebug>
