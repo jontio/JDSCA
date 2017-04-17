@@ -1591,6 +1591,8 @@ BitRateSearch::BitRateSearch()
 
     setSetting(192000,0.9,4,100,6,3.0,1.0,5000.0);
 
+    trycount=0;
+
 }
 
 void BitRateSearch::setSetting(double _Fs,double _fft_smoothing,int number_peaks_to_detect,int min_peak_distance,double _max_rate_diff,double _max_ratio,double _min_prominance,double _lockingbw)
@@ -1708,6 +1710,9 @@ double BitRateSearch::peaktest(const QVector<double> &samplebuffer,const QVector
                 candidate_rate.push_back(best_rate);
                 candidate_freq_offset.push_back(freq_offset);
                 candidate_cost.push_back(ratio);
+
+                //qDebug()<<"Rate = "<<rate<<" freq offset = "<<freq_offset<<" ratio = "<<ratio<<" prominance = "<<prominance;
+
             }
 
         }
@@ -1722,18 +1727,73 @@ double BitRateSearch::peaktest(const QVector<double> &samplebuffer,const QVector
         return rate_guess;
     }
 
+    //cycle through guessing methods. this is reset when the user changes something
+    if(trycount<30)trycount++;
+     else trycount=1;
+
     //find best candidate
+
+    //first based on frequency offset
     best_rate=-1;
-    double best_freq_offset=0;
+    double best_freq_offset=1000000;
     double best_cost=10000000000;
-    for(int i=0;i<candidate_rate.size();i++)
+    if(trycount<=16)
     {
-        if(candidate_cost[i]<best_cost)
+        //qDebug()<<"based on frequency offset";
+        for(int i=0;i<candidate_rate.size();i++)
         {
-            best_cost=candidate_cost[i];
-            best_rate=candidate_rate[i];
-            best_freq_offset=candidate_freq_offset[i];
+            if(fabs(candidate_freq_offset[i])<fabs(best_freq_offset))
+            {
+                best_cost=candidate_cost[i];
+                best_rate=candidate_rate[i];
+                best_freq_offset=candidate_freq_offset[i];
+            }
         }
+    }
+
+    //then based on ratio
+    if(trycount>16&&trycount<=20)
+    {
+        //qDebug()<<"based on ratio";
+        best_rate=-1;
+        best_freq_offset=1000000;
+        best_cost=10000000000;
+        for(int i=0;i<candidate_rate.size();i++)
+        {
+            if(candidate_cost[i]<best_cost)
+            {
+                best_cost=candidate_cost[i];
+                best_rate=candidate_rate[i];
+                best_freq_offset=candidate_freq_offset[i];
+            }
+        }
+    }
+
+    //then based on guessing
+    if(trycount>20)
+    {
+        //qDebug()<<"based on guessing";
+        //guess prefering a different rate than the previous one
+        QList<int> idx;
+        for(int i=0;i<candidate_rate.size();i++)
+        {
+            if(qRound(rate_guess)!=qRound(candidate_rate[i]))idx.push_back(i);
+        }
+        int i;
+        if(idx.size())
+        {
+            i=idx[qrand()%idx.size()];
+        }
+        else
+        {
+            i=qrand()%candidate_rate.size();
+        }
+        best_cost=candidate_cost[i];
+        best_rate=candidate_rate[i];
+        best_freq_offset=candidate_freq_offset[i];
+        rate_guess=best_rate;
+        freq_offset_guess=best_freq_offset;
+        last_best_rate=best_rate;//fool the following itto thinging we know
     }
 
     //give persistance to the returned estimate. also make sure we get two of the same estimates in a row
@@ -1741,7 +1801,7 @@ double BitRateSearch::peaktest(const QVector<double> &samplebuffer,const QVector
     {
         rate_guess=best_rate;
         freq_offset_guess=best_freq_offset;
-      //  qDebug()<<"good guesses "<<rate_guess<<freq_offset_guess;
+        //qDebug()<<"good guesses "<<rate_guess<<freq_offset_guess;
     } //else qDebug()<<"no good guesses";
     last_best_rate=best_rate;
 

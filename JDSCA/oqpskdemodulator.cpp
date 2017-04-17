@@ -682,6 +682,12 @@ void OqpskDemodulator::setBandPassFilter()
 
     QMutexLocker locker(mut);
 
+    static double last_freq=0;
+    static double last_lockingbw=0;
+    if((mixer_center.wt_freq!=last_freq)||(lockingbw!=last_lockingbw))coarsefreqestimate->resettrycount();
+    last_freq=mixer_center.wt_freq;
+    last_lockingbw=lockingbw;
+
     coarsefreqestimate->setSettings(settings.coarsefreqest_fft_power,2.0*lockingbw/2.0,fb,Fs);
     bluebpf->updateKernel(QJFilterDesign::BandPassHanning(mixer_center.wt_freq-lockingbw/2.0,mixer_center.wt_freq+lockingbw/2.0,Fs,bluebpf->getKernelSize()));
 }

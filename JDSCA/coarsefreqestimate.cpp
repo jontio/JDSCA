@@ -59,7 +59,9 @@ void CoarseFreqEstimate::setSettings(int _coarsefreqest_fft_power,double _lockin
     bitratesearch.validbitrates.push_back(72000);
     bitratesearch.validbitrates.push_back(82000);
     bitratesearch.validbitrates.push_back(94000);
-    bitratesearch.setSetting(Fs,0.1,12,10.0/hzperbin,10,100.0,0.1,lockingbw);//smoothing has problems when freq is drifting so better to keep small i think
+    bitratesearch.setSetting(Fs,0.1,20,15.0/hzperbin,10,100.0,0.0001,lockingbw);//smoothing has problems when freq is drifting so better to keep small i think //i reduced prominence for bad signals and increased # of peaks to use
+    //bitratesearch.setSetting(Fs,0.1,12,10.0/hzperbin,10,100.0,0.0001,lockingbw);//smoothing has problems when freq is drifting so better to keep small i think //i reduced prominence for bad signals
+    //bitratesearch.setSetting(Fs,0.1,12,10.0/hzperbin,10,100.0,0.1,lockingbw);//smoothing has problems when freq is drifting so better to keep small i think
     //bitratesearch.setSetting(Fs,0.1,10,10000.0/hzperbin,10,100.0,1.0,lockingbw);
 
     //debug_buffer2.resize(10*48000);
@@ -92,6 +94,11 @@ CoarseFreqEstimate::~CoarseFreqEstimate()
 void CoarseFreqEstimate::bigchange()
 {
     emptyingcountdown=4;
+}
+
+void CoarseFreqEstimate::resettrycount()
+{
+    bitratesearch.trycount=0;
 }
 
 void CoarseFreqEstimate::ProcessBasebandData(const QVector<cpx_type> &data)

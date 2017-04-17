@@ -541,6 +541,7 @@ public:
     void setSetting(double Fs,double fft_smoothing,int number_peaks_to_detect,int min_peak_distance,double max_rate_diff,double max_ratio,double min_prominance,double lockingbw);
     double rate_guess;
     double freq_offset_guess;
+    int trycount=0;
 private:
     double update_direct(const QVector<double> &samplebuffer);
     double peaktest(const QVector<double> &samplebuffer,const QVector<int> &best_x, double Fs);//(const QVector<int> &best_x, const QVector<double> &best_y, double Fs, int nfft);

@@ -22,6 +22,7 @@ public:
     ~CoarseFreqEstimate();
     void setSettings(int coarsefreqest_fft_power,double lockingbw,double fb,double Fs);
     void bigchange();
+    void resettrycount();
 signals:
     void FreqOffsetEstimate(double freq_offset_est);
     void BitrateEstimate(double bitrate_est);//this class also estimates bitrate you need to set vail bit rates in constructor

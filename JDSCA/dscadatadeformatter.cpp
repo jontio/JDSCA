@@ -423,7 +423,7 @@ bool PreambleDetectorPhaseInvariant::setPreamble(quint64 bitpreamble,int len)
     buffer_ptr=0;
     return true;
 }
-int PreambleDetectorPhaseInvariant::Update(int val)
+bool PreambleDetectorPhaseInvariant::Update(int val)
 {
     assert(buffer.size()==preamble.size());
     int xorsum=0;
@@ -434,8 +434,8 @@ int PreambleDetectorPhaseInvariant::Update(int val)
     }
     xorsum+=val^preamble[buffer.size()-1];
     buffer[buffer.size()-1]=val;
-    if(xorsum>=(buffer.size()-tollerence)){buffer.fill(0);inverted=true;return -1;}
-    if(xorsum<=tollerence){buffer.fill(0);inverted=false;return 1;}
+    if(xorsum>=(buffer.size()-tollerence)){inverted=true;return true;}
+    if(xorsum<=tollerence){inverted=false;return true;}
     return false;
 }
 void PreambleDetectorPhaseInvariant::setTollerence(int _tollerence)
@@ -515,11 +515,9 @@ DSCADataDeFormatter::DSCADataDeFormatter(QObject *parent) : QObject(parent)
     dl1.setLength(12);//delay for decode encode BER check
     dl2.setLength(576-6);//delay's data to next frame
 
-    preambledetector.setPreamble(3780831379LL,32);//0x3780831379,0b11100001010110101110100010010011
 
     //Preamble detector for OQPSK
-    preambledetectorphaseinvariantimag.setPreamble(3780831379LL,32);//0x3780831379,0b11100001010110101110100010010011
-    preambledetectorphaseinvariantreal.setPreamble(3780831379LL,32);//0x3780831379,0b11100001010110101110100010010011
+    oqpskpreambledetector.setPreamble(3780831379LL,32);
 
     mode=DSCADataDeFormatter::none;
     setSettings(1200,mode1);
@@ -542,8 +540,7 @@ void DSCADataDeFormatter::setSettings(double _fb,DSCADataDeFormatter::Mode _mode
     mode=_mode;
     fb=_fb;
     ifb=qRound(fb);
-    preambledetectorphaseinvariantimag.setTollerence(0);
-    preambledetectorphaseinvariantreal.setTollerence(0);
+    oqpskpreambledetector.setTollerence(6);//15 is max
 
     switch(mode)
     {
@@ -554,7 +551,6 @@ void DSCADataDeFormatter::setSettings(double _fb,DSCADataDeFormatter::Mode _mode
         NumberOfBitsInBlock=9600;
         NumberOfBitsInHeader=16;//0 dummy bits
         NumberOfBitsInFrame=NumberOfBitsInHeader+NumberOfBitsInBlock+64;//64 bit preamble
-        useingOQPSK=true;
         dl2.setLength(NumberOfBitsInBlock);//delay's data to next frame
         leaver.setColumnSize(NumberOfBitsInBlock/64);//all interleavers have 64 rows
         block.resize(NumberOfBitsInBlock);
@@ -564,7 +560,6 @@ void DSCADataDeFormatter::setSettings(double _fb,DSCADataDeFormatter::Mode _mode
         NumberOfBitsInBlock=9600;
         NumberOfBitsInHeader=16;//0 dummy bits
         NumberOfBitsInFrame=NumberOfBitsInHeader+NumberOfBitsInBlock+64;
-        useingOQPSK=true;
         dl2.setLength(3*NumberOfBitsInBlock/4-jconvolcodec->getPaddinglength());//delay's data to next frame
         leaver.setColumnSize(NumberOfBitsInBlock/64);//all interleavers have 64 rows
         block.resize(NumberOfBitsInBlock);
@@ -574,7 +569,6 @@ void DSCADataDeFormatter::setSettings(double _fb,DSCADataDeFormatter::Mode _mode
         NumberOfBitsInBlock=19200;
         NumberOfBitsInHeader=16;//0 dummy bits
         NumberOfBitsInFrame=NumberOfBitsInHeader+NumberOfBitsInBlock+64;
-        useingOQPSK=true;
         dl2.setLength(3*NumberOfBitsInBlock/4-jconvolcodec->getPaddinglength());//delay's data to next frame
         leaver.setColumnSize(NumberOfBitsInBlock/64);//all interleavers have 64 rows
         block.resize(NumberOfBitsInBlock);
@@ -584,7 +578,6 @@ void DSCADataDeFormatter::setSettings(double _fb,DSCADataDeFormatter::Mode _mode
         NumberOfBitsInBlock=9600;
         NumberOfBitsInHeader=16;//0 dummy bits
         NumberOfBitsInFrame=NumberOfBitsInHeader+NumberOfBitsInBlock+64;
-        useingOQPSK=true;
         dl2.setLength(NumberOfBitsInBlock-jconvolcodec->getPaddinglength());
         leaver.setColumnSize(NumberOfBitsInBlock/64);//all interleavers have 64 rows
         block.resize(NumberOfBitsInBlock);
@@ -594,16 +587,120 @@ void DSCADataDeFormatter::setSettings(double _fb,DSCADataDeFormatter::Mode _mode
         NumberOfBitsInBlock=19200;
         NumberOfBitsInHeader=16;//0 dummy bits
         NumberOfBitsInFrame=NumberOfBitsInHeader+NumberOfBitsInBlock+64;
-        useingOQPSK=true;
         dl2.setLength(NumberOfBitsInBlock-jconvolcodec->getPaddinglength());
         leaver.setColumnSize(NumberOfBitsInBlock/64);//all interleavers have 64 rows
         block.resize(NumberOfBitsInBlock);
         break;
     }
 
-
-
     emit signalModeChanged(mode);
+}
+
+void OQPSKPreambleDetector::reset()
+{
+    //qDebug()<<"OQPSKPreambleDetector::reset";
+    signal=false;
+    gotsync=false;
+    realimag=false;
+    gotsync_last=false;
+    reinforce_cnt=0;
+    real_inv=false;
+    imag_inv=false;
+    new_lock=false;
+    last_NumberOfBitsInFrame=0;
+    rep=false;
+}
+bool OQPSKPreambleDetector::Update(quint16 &bit, uchar &soft_bit, int NumberOfBitsInFrame, int &cntr)
+{
+
+    //find posible sync
+    realimag=!realimag;
+    if(realimag)
+    {
+        gotsync=preambledetectorphaseinvariantimag.Update(bit);
+        if(!gotsync_last)
+        {
+            gotsync_last=gotsync;
+            gotsync=false;
+        } else gotsync_last=false;
+    }
+    else
+    {
+        gotsync=preambledetectorphaseinvariantreal.Update(bit);
+        if(!gotsync_last)
+        {
+            gotsync_last=gotsync;
+            gotsync=false;
+        } else gotsync_last=false;
+    }
+
+    //calculate if this is a repitition
+    if((last_NumberOfBitsInFrame==NumberOfBitsInFrame)&&(cntr==NumberOfBitsInFrame-2))rep=true;
+     else rep=false;
+    last_NumberOfBitsInFrame=NumberOfBitsInFrame;
+
+    //if got a sync
+    if(gotsync)
+    {
+        //if this is a repitition sync then reinforce our opinion
+        if(rep)
+        {
+            //qDebug()<<"rep && gotsync";
+            if(reinforce_cnt<MAX_REINFORCE_CNT)reinforce_cnt++;
+            //should we update our flippers or not???
+            real_inv=preambledetectorphaseinvariantreal.inverted;
+            imag_inv=preambledetectorphaseinvariantimag.inverted;
+        }
+         else
+         {
+            //if we have no confidence and the lock has timed out then use this new sync
+            if((reinforce_cnt==0)&&(!new_lock))
+            {
+                //qDebug()<<"change";
+                cntr=(14-16);
+                real_inv=preambledetectorphaseinvariantreal.inverted;
+                imag_inv=preambledetectorphaseinvariantimag.inverted;
+                new_lock=true;
+                rep=false;
+            }
+         }
+    }
+
+    //if this is a repitition
+    if(rep)
+    {
+        //qDebug()<<reinforce_cnt;
+        if(!gotsync)
+        {
+            //qDebug()<<"rep && !gotsync";
+            new_lock=false;
+            if(reinforce_cnt>0)reinforce_cnt--;
+        }
+    }
+
+    //when we are confindent enough, say we think this is a signal
+    if(reinforce_cnt>0)signal=true;
+     else signal=false;
+
+    //do flipping of the arms as needed
+    if(realimag)
+    {
+        if(imag_inv)
+        {
+            bit=1-bit;
+            soft_bit=255-soft_bit;
+        }
+    }
+    else
+    {
+        if(real_inv)
+        {
+            bit=1-bit;
+            soft_bit=255-soft_bit;
+        }
+    }
+
+    return signal;
 }
 
 DSCADataDeFormatter::~DSCADataDeFormatter()
@@ -614,8 +711,6 @@ DSCADataDeFormatter::~DSCADataDeFormatter()
 void DSCADataDeFormatter::updateDCD()
 {
     //qDebug()<<datacdcountdown;
-
-
 
     //keep track of the DCD
     if(datacdcountdown>0)datacdcountdown-=3;
@@ -629,6 +724,11 @@ void DSCADataDeFormatter::updateDCD()
 
     if(!datacd){slip.badBytes_cnt=0;slip.goodBytes_cnt=0;}
     emit signalBER(ber);
+
+    static bool datacd_last=datacd;
+    if((datacd_last)&&(!datacd))oqpskpreambledetector.reset();
+    datacd_last=datacd;
+
 }
 
 void DSCADataDeFormatter::processDemodulatedSoftBits(const QByteArray &soft_bits)//0 bit --> oldest bit
@@ -679,55 +779,33 @@ void DSCADataDeFormatter::processDemodulatedSoftBits(const QByteArray &soft_bits
 
         if(((uchar)soft_bits[i])>=128)bit=1;
          else bit=0;
-
         soft_bit=soft_bits[i];
 
+        //Preamble detector, frame alignment and ambiguity corrector for OQPSK
+        //this alters all arguments except NumberOfBitsInFrame.
+        //it finds the best preamble in the bit stream and alters cntr
+        //to point at the correct place in the frame.
+        //it then corrects for the polarity ambiguity of both bit and soft_bit.
+        //the return from this function is true when a signal is present
+        oqpskpreambledetector.Update(bit,soft_bit,NumberOfBitsInFrame,cntr);
 
-        //Preamble detector and ambiguity corrector for OQPSK
-        int gotsync;
-        if(useingOQPSK)
+        //got a signal
+        if((oqpskpreambledetector.signal)&&(!datacd))
         {
-            realimag++;realimag%=2;
-            if(realimag)
-            {
-                gotsync=preambledetectorphaseinvariantimag.Update(bit);
-                if(!gotsync_last)
-                {
-                    gotsync_last=gotsync;
-                    gotsync=0;
-                } else gotsync_last=0;
-            }
-            else
-            {
-                gotsync=preambledetectorphaseinvariantreal.Update(bit);
-                if(!gotsync_last)
-                {
-                    gotsync_last=gotsync;
-                    gotsync=0;
-                } else gotsync_last=0;
-            }
-
-
-            if(realimag)
-            {
-                if(preambledetectorphaseinvariantimag.inverted)
-                {
-                    bit=1-bit;
-                    soft_bit=255-soft_bit;
-                }
-            }
-            else
-            {
-                if(preambledetectorphaseinvariantreal.inverted)
-                {
-                    bit=1-bit;
-                    soft_bit=255-soft_bit;
-                }
-            }
-
+            datacd=true;
+            datacdcountdown=24;
+            emit DataCarrierDetect(datacd);
         }
-         else gotsync=preambledetector.Update(bit);
-
+        //lost a signal
+        if((!oqpskpreambledetector.signal)&&(datacd))
+        {
+            datacd=false;
+            datacdcountdown=0;
+            decodedbytes.clear();//clear decoded bits (this is not used)
+            {slip.badBytes_cnt=0;slip.goodBytes_cnt=0;ber=0;}//clear slip
+            block.fill(0);//clear filling block (not sure if this does anything)
+            emit DataCarrierDetect(datacd);
+        }
 
         if(cntr<1000000000)cntr++;
         if(cntr<16)
@@ -745,7 +823,6 @@ void DSCADataDeFormatter::processDemodulatedSoftBits(const QByteArray &soft_bits
         }
         if(cntr==15)
         {
-
             bool vaildframeinfo=false;
             switch(frameinfo)
             {
@@ -877,9 +954,6 @@ void DSCADataDeFormatter::processDemodulatedSoftBits(const QByteArray &soft_bits
                     {
 
 
-
-
-
                             slip.NewRxData();
                             while(slip.GotRXPacket(infofield))
                             {
@@ -972,53 +1046,9 @@ void DSCADataDeFormatter::processDemodulatedSoftBits(const QByteArray &soft_bits
 
                 }
 
-
-
-
-
         }
 
-
-        if(gotsync)
-        {
-
-
-                if((cntr+1!=NumberOfBitsInFrame)&&datacd)
-                {
-                    decodedbytes+="Error short frame!!! maybe the soundcard dropped some sound card buffers\n";
-                    emit ShortDataFrame();
-
-                    /*datacd=false;
-                    datacdcountdown=0;
-                    emit DataCarrierDetect(datacd);
-
-                    scrambler.reset();
-                    cntr=-1;*/
-                }
-
-//else{
-//            decodedbytes+=((QString)"Bits for frame = %1\n").arg(cntr+1);
-            cntr=-1;
-//            decodedbytes+="\nGot sync\n";
-
-            if(!datacd){slip.badBytes_cnt=0;slip.goodBytes_cnt=0;ber=0;}
-
-            //got a signal
-            datacd=true;
-            datacdcountdown=24;//*4;//depend on frame frate
-            emit DataCarrierDetect(datacd);
-
-//     17       scrambler.reset();
-
- //               }
-        }
-
-        if(cntr+1==NumberOfBitsInFrame)
-        {
-//     17       scrambler.reset();
-            cntr=-1;
-        }
-
+        if(cntr+1>=NumberOfBitsInFrame)cntr=-1;
 
     }
 

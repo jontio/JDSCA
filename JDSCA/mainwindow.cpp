@@ -277,9 +277,9 @@ void MainWindow::AboutSlot()
 {
     QMessageBox::about(this,"JDSCA",""
                                      "<H1>A DSCA demodulator and decoder</H1>"
-                                     "<H3>v1.1</H3>"
+                                     "<H3>v1.1.1</H3>"
                                      "<p>This is a program to listen to digital SCA signals.</p>"
-                                     "<p><a href=\"http://jontio.zapto.org/\">http://jontio.zapto.org/</a>.</p>"
+                                     "<p><a href=\"http://jontio.zapto.org/hda1/jdsca.html\">http://jontio.zapto.org/hda1/jdsca.html</a>.</p>"
                                      "<p>Jonti 2017</p>" );
 
 

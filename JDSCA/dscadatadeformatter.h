@@ -284,7 +284,7 @@ public:
     void setPreamble(QVector<int> _preamble);
     bool setPreamble(quint64 bitpreamble,int len);
     void setTollerence(int tollerence);
-    int Update(int val);
+    bool Update(int val);
     bool inverted;
 private:
     QVector<int> preamble;
@@ -293,8 +293,49 @@ private:
     int tollerence;
 };
 
+
+class OQPSKPreambleDetector
+{
+public:
+    OQPSKPreambleDetector(){reset();}
+    void reset();
+    void setPreamble(QVector<int> _preamble)
+    {
+        preambledetectorphaseinvariantreal.setPreamble(_preamble);
+        preambledetectorphaseinvariantimag.setPreamble(_preamble);
+    }
+    bool setPreamble(quint64 bitpreamble,int len)
+    {
+        if(!preambledetectorphaseinvariantreal.setPreamble(bitpreamble,len))return false;
+        if(!preambledetectorphaseinvariantimag.setPreamble(bitpreamble,len))return false;
+        return true;
+    }
+    void setTollerence(int tollerence)
+    {
+        preambledetectorphaseinvariantreal.setTollerence(tollerence);
+        preambledetectorphaseinvariantimag.setTollerence(tollerence);
+    }
+    bool Update(quint16 &bit, uchar &soft_bit, int NumberOfBitsInFrame, int &cntr);
+    bool signal;
+private:
+    PreambleDetectorPhaseInvariant preambledetectorphaseinvariantimag;
+    PreambleDetectorPhaseInvariant preambledetectorphaseinvariantreal;
+
+    bool new_lock;
+    int last_NumberOfBitsInFrame;
+    bool rep;
+    bool gotsync;
+    bool realimag;
+    bool gotsync_last;
+    int reinforce_cnt;
+    bool real_inv;
+    bool imag_inv;
+};
+
+
 class OQPSKPreambleDetectorAndAmbiguityCorrection
 {
+#define MAX_REINFORCE_CNT 6
 public:
     OQPSKPreambleDetectorAndAmbiguityCorrection();
     void setPreamble(QVector<int> _preamble);
@@ -355,6 +396,7 @@ public slots:
     }
     void LostSignal()
     {
+        //qDebug()<<"lost";
         cntr=1000000000;
         datacdcountdown=0;
         datacd=false;
@@ -370,7 +412,6 @@ private:
 
     QVector<short> sbits;
     QByteArray decodedbytes;
-    PreambleDetector preambledetector;
 
     Mode mode;
     QVector<int> modecode_counts;
@@ -383,10 +424,8 @@ private:
     //
 
     //OQPSK
-    PreambleDetectorPhaseInvariant preambledetectorphaseinvariantimag;
-    PreambleDetectorPhaseInvariant preambledetectorphaseinvariantreal;
+    OQPSKPreambleDetector oqpskpreambledetector;
 
-    bool useingOQPSK;
     int NumberOfBitsInBlock;//info only
     int NumberOfBitsInFrame;//info and header and uw
     int NumberOfBitsInHeader;
