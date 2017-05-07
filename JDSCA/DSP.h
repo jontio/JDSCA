@@ -36,6 +36,15 @@
 
 typedef std::complex<double> cpx_type;
 
+float arctan2_fast_maybe(cpx_type point);
+
+static __inline__ qint64 getticks(void)
+{
+     unsigned a, d;
+     asm volatile("rdtsc" : "=a" (a), "=d" (d));
+     return (((qint64)a) | (((qint64)d) << 32));
+}
+
 class TrigLookUp
 {
     public:
@@ -94,9 +103,10 @@ private:
 
 //---- todat move to using this wt; its faster but still needs some work to get more functionallity
 
-
+#ifndef CPX_TYPE
 typedef std::complex<double> cpx_type;
-
+#define CPX_TYPE
+#endif
 
 //this is not tested much and it might have bugs in it
 //interpolation is about 5 orders of magnitude better. rough --> 1dp interpol --> 6dp. or WT_COMPLEX_SIZE==16 for interpol and WT_COMPLEX_SIZE==1024 for rough
@@ -244,23 +254,6 @@ public:
 };
 
 //---------
-
-//4 stage biquad iir
-#define iir_4(cx_in) cx=cx_in*gain_1;cy = b0_1 * cx + cz0_1;cz0_1 = b1_1 * cx - a1_1 * cy + cz1_1;cz1_1 = b2_1 * cx - a2_1 * cy; \
-                     cx=cy*gain_2;cy = b0_2 * cx + cz0_2;cz0_2 = b1_2 * cx - a1_2 * cy + cz1_2;cz1_2 = b2_2 * cx - a2_2 * cy; \
-                     cx=cy*gain_3;cy = b0_3 * cx + cz0_3;cz0_3 = b1_3 * cx - a1_3 * cy + cz1_3;cz1_3 = b2_3 * cx - a2_3 * cy; \
-                     cx=cy*gain_4;cy = b0_4 * cx + cz0_4;cz0_4 = b1_4 * cx - a1_4 * cy + cz1_4;cz1_4 = b2_4 * cx - a2_4 * cy;
-
-//6 stage biquad iir
-#define iir_6(cx_in) cx=cx_in*gain_1;cy = b0_1 * cx + cz0_1;cz0_1 = b1_1 * cx - a1_1 * cy + cz1_1;cz1_1 = b2_1 * cx - a2_1 * cy; \
-                     cx=cy*gain_2;cy = b0_2 * cx + cz0_2;cz0_2 = b1_2 * cx - a1_2 * cy + cz1_2;cz1_2 = b2_2 * cx - a2_2 * cy; \
-                     cx=cy*gain_3;cy = b0_3 * cx + cz0_3;cz0_3 = b1_3 * cx - a1_3 * cy + cz1_3;cz1_3 = b2_3 * cx - a2_3 * cy; \
-                     cx=cy*gain_4;cy = b0_4 * cx + cz0_4;cz0_4 = b1_4 * cx - a1_4 * cy + cz1_4;cz1_4 = b2_4 * cx - a2_4 * cy; \
-                     cx=cy*gain_5;cy = b0_5 * cx + cz0_5;cz0_5 = b1_5 * cx - a1_5 * cy + cz1_5;cz1_5 = b2_5 * cx - a2_5 * cy; \
-                     cx=cy*gain_6;cy = b0_6 * cx + cz0_6;cz0_6 = b1_6 * cx - a1_6 * cy + cz1_6;cz1_6 = b2_6 * cx - a2_6 * cy;
-
-
-
 
 class FIR
 {

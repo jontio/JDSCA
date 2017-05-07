@@ -27,6 +27,10 @@ class SDR : public QObject
 {
 Q_OBJECT
 public:
+
+    typedef enum Filter_selection{FILTER_100_120=0,FILTER_120_150=1,FILTER_150_200=2,FILTER_200_300=3,FILTER_NONE}Filter_selection;
+    typedef enum Discrim_selection{DISCRIM_APPROX,DISCRIM_ATAN2,DISCRIM_ATAN2_FAST}Discrim_selection;
+
     SDR(QObject *parent = 0);
     ~SDR();
     QStringList GetDeviceNames();
@@ -35,6 +39,8 @@ public:
     void SetGain(int dB);
     void SetAGC(bool enable);
     void SetAFC(bool enable);
+    void SetFilterSelection(SDR::Filter_selection filter_selection);
+    SDR::Filter_selection GetFilterSelection();
     void SetFrequency(int freq);
     void SetSubCarrierFrequencyOffset(int freq);
     int GetSubCarrierFrequencyOffset();
@@ -90,99 +96,70 @@ private:
     //various ones to choose from. its a complex filter so the bandwidth is 2* the passband
     //the constelations seem to colapse due to these things
 
-    //Sampling Frequency : 1200000;
-    //Passband Frequency : 85000;
-    //Stopband Frequecncy : 105000;
-    //Passband Ripple (dB) : 5.000000e-02;
-    //Stopband Attenuation (dB) : 60;
-//    cpx_type cx;cpx_type cy;
-//    const double gain_1=6.958355120e-01;const double b0_1=1.000000000e+00;const double b1_1=-1.659940833e+00;const double b2_1=1.000000000e+00;const double a1_1=-1.719221713e+00;const double a2_1=8.911986451e-01;cpx_type cz0_1;cpx_type cz1_1;
-//    const double gain_2=5.135450097e-01;const double b0_2=1.000000000e+00;const double b1_2=-1.420034466e+00;const double b2_2=1.000000000e+00;const double a1_2=-1.655916880e+00;const double a2_2=7.700013426e-01;cpx_type cz0_2;cpx_type cz1_2;
-//    const double gain_3=3.457082444e-01;const double b0_3=1.000000000e+00;const double b1_3=1.576256538e-01;const double b2_3=1.000000000e+00;const double a1_3=-1.594989536e+00;const double a2_3=6.484798724e-01;cpx_type cz0_3;cpx_type cz1_3;
-//    const double gain_4=1.415891309e-02;const double b0_4=1.000000000e+00;const double b1_4=-1.716918327e+00;const double b2_4=1.000000000e+00;const double a1_4=-1.767632786e+00;const double a2_4=9.695611149e-01;cpx_type cz0_4;cpx_type cz1_4;
-
-    //Sampling Frequency : 1200000;
-    //Passband Frequency : 95000;
-    //Stopband Frequecncy : 120000;
-    //Passband Ripple (dB) : 1.000000e-02;
-    //Stopband Attenuation (dB) : 60;
-//    cpx_type cx;cpx_type cy;
-//    const double gain_1=6.527141816e-01;const double b0_1=1.000000000e+00;const double b1_1=-1.525931357e+00;const double b2_1=1.000000000e+00;const double a1_1=-1.619157064e+00;const double a2_1=8.421292387e-01;cpx_type cz0_1=0;cpx_type cz1_1=0;
-//    const double gain_2=4.832953160e-01;const double b0_2=1.000000000e+00;const double b1_2=-1.189410591e+00;const double b2_2=1.000000000e+00;const double a1_2=-1.530932371e+00;const double a2_2=6.862616235e-01;cpx_type cz0_2=0;cpx_type cz1_2=0;
-//    const double gain_3=3.993993060e-01;const double b0_3=1.000000000e+00;const double b1_3=5.760090221e-01;const double b2_3=1.000000000e+00;const double a1_3=-1.452176123e+00;const double a2_3=5.416669506e-01;cpx_type cz0_3=0;cpx_type cz1_3=0;
-//    const double gain_4=1.668442256e-02;const double b0_4=1.000000000e+00;const double b1_4=-1.610219116e+00;const double b2_4=1.000000000e+00;const double a1_4=-1.691664787e+00;const double a2_4=9.536529972e-01;cpx_type cz0_4=0;cpx_type cz1_4=0;
-
-    //this one is the best but the bandwidth is bigger than I thought it should be
-    //Sampling Frequency : 1200000;
-    //Passband Frequency : 120000;
-    //Stopband Frequecncy : 200000;
-    //Passband Ripple (dB) : 1.000000e-02;
-    //Stopband Attenuation (dB) : 60;
-//    cpx_type cx;cpx_type cy;
-//    const double gain_1=3.826143438e-01;const double b0_1=1.000000000e+00;const double b1_1=-1.240293996e+00;const double b2_1=1.000000000e+00;const double a1_1=-1.487362522e+00;const double a2_1=9.118618836e-01;cpx_type cz0_1=0;cpx_type cz1_1=0;
-//    const double gain_2=3.313614411e-01;const double b0_2=1.000000000e+00;const double b1_2=-1.006250344e+00;const double b2_2=1.000000000e+00;const double a1_2=-1.391253707e+00;const double a2_2=7.205440254e-01;cpx_type cz0_2=0;cpx_type cz1_2=0;
-//    const double gain_3=1.032644160e-01;const double b0_3=1.000000000e+00;const double b1_3=-5.906077665e-02;const double b2_3=1.000000000e+00;const double a1_3=-1.309769599e+00;const double a2_3=5.101995539e-01;cpx_type cz0_3=0;cpx_type cz1_3=0;
-//    const double gain_4=2.657856794e-01;const double b0_4=1.000000000e+00;const double b1_4=1.000000000e+00;const double b2_4=0.000000000e+00;const double a1_4=-6.360084201e-01;const double a2_4=0.000000000e+00;cpx_type cz0_4=0;cpx_type cz1_4=0;
+    cpx_type cx,cy;
 
     //Sampling Frequency : 1200000;
     //Passband Frequency : 100000;
     //Stopband Frequecncy : 120000;
-    //Passband Ripple (dB) : 1.000000e-03;
-    //Stopband Attenuation (dB) : 40;
-//    cpx_type cx;cpx_type cy;
-//    const double gain_1=7.824919130e-01;const double b0_1=1.000000000e+00;const double b1_1=-1.561117273e+00;const double b2_1=1.000000000e+00;const double a1_1=-1.557049441e+00;const double a2_1=8.379132903e-01;cpx_type cz0_1=0;cpx_type cz1_1=0;
-//    const double gain_2=6.170967785e-01;const double b0_2=1.000000000e+00;const double b1_2=-1.275532644e+00;const double b2_2=1.000000000e+00;const double a1_2=-1.385150223e+00;const double a2_2=6.260288972e-01;cpx_type cz0_2=0;cpx_type cz1_2=0;
-//    const double gain_3=5.785293654e-01;const double b0_3=1.000000000e+00;const double b1_3=4.029873378e-01;const double b2_3=1.000000000e+00;const double a1_3=-1.180816523e+00;const double a2_3=3.737010553e-01;cpx_type cz0_3=0;cpx_type cz1_3=0;
-//    const double gain_4=4.991869068e-02;const double b0_4=1.000000000e+00;const double b1_4=-1.629789091e+00;const double b2_4=1.000000000e+00;const double a1_4=-1.654228892e+00;const double a2_4=9.565358453e-01;cpx_type cz0_4=0;cpx_type cz1_4=0;
-
-    //bad
-    //Sampling Frequency : 1200000;
-    //Passband Frequency : 100000;
-    //Stopband Frequecncy : 120000;
     //Passband Ripple (dB) : 5.000000e-02;
     //Stopband Attenuation (dB) : 60;
-//    cpx_type cx;cpx_type cy;
-//    const double gain_1=7.004982447e-01;const double b0_1=1.000000000e+00;const double b1_1=-1.538920606e+00;const double b2_1=1.000000000e+00;const double a1_1=-1.639844068e+00;const double a2_1=8.745866535e-01;cpx_type cz0_1=0;cpx_type cz1_1=0;
-//    const double gain_2=5.263113548e-01;const double b0_2=1.000000000e+00;const double b1_2=-1.231562239e+00;const double b2_2=1.000000000e+00;const double a1_2=-1.581338917e+00;const double a2_2=7.362552615e-01;cpx_type cz0_2=0;cpx_type cz1_2=0;
-//    const double gain_3=4.054145631e-01;const double b0_3=1.000000000e+00;const double b1_3=4.861027861e-01;const double b2_3=1.000000000e+00;const double a1_3=-1.526605177e+00;const double a2_3=5.988834759e-01;cpx_type cz0_3=0;cpx_type cz1_3=0;
-//    const double gain_4=1.423306342e-02;const double b0_4=1.000000000e+00;const double b1_4=-1.614036898e+00;const double b2_4=1.000000000e+00;const double a1_4=-1.688011757e+00;const double a2_4=9.647694835e-01;cpx_type cz0_4=0;cpx_type cz1_4=0;
+    #ifndef CPX_TYPE
+    typedef std::complex<double> cpx_type;
+    #define CPX_TYPE
+    #endif
+    cpx_type cx_100_120k_BiQuad=0;cpx_type cy_100_120k_BiQuad=0;
+    const double gain_100_120k_BiQuad_1=7.004982447e-01;const double b0_100_120k_BiQuad_1=1.000000000e+00;const double b1_100_120k_BiQuad_1=-1.538920606e+00;const double b2_100_120k_BiQuad_1=1.000000000e+00;const double a1_100_120k_BiQuad_1=-1.639844068e+00;const double a2_100_120k_BiQuad_1=8.745866535e-01;cpx_type cz0_100_120k_BiQuad_1=0;cpx_type cz1_100_120k_BiQuad_1=0;
+    const double gain_100_120k_BiQuad_2=5.263113548e-01;const double b0_100_120k_BiQuad_2=1.000000000e+00;const double b1_100_120k_BiQuad_2=-1.231562239e+00;const double b2_100_120k_BiQuad_2=1.000000000e+00;const double a1_100_120k_BiQuad_2=-1.581338917e+00;const double a2_100_120k_BiQuad_2=7.362552615e-01;cpx_type cz0_100_120k_BiQuad_2=0;cpx_type cz1_100_120k_BiQuad_2=0;
+    const double gain_100_120k_BiQuad_3=4.054145631e-01;const double b0_100_120k_BiQuad_3=1.000000000e+00;const double b1_100_120k_BiQuad_3=4.861027861e-01;const double b2_100_120k_BiQuad_3=1.000000000e+00;const double a1_100_120k_BiQuad_3=-1.526605177e+00;const double a2_100_120k_BiQuad_3=5.988834759e-01;cpx_type cz0_100_120k_BiQuad_3=0;cpx_type cz1_100_120k_BiQuad_3=0;
+    const double gain_100_120k_BiQuad_4=1.423306342e-02;const double b0_100_120k_BiQuad_4=1.000000000e+00;const double b1_100_120k_BiQuad_4=-1.614036898e+00;const double b2_100_120k_BiQuad_4=1.000000000e+00;const double a1_100_120k_BiQuad_4=-1.688011757e+00;const double a2_100_120k_BiQuad_4=9.647694835e-01;cpx_type cz0_100_120k_BiQuad_4=0;cpx_type cz1_100_120k_BiQuad_4=0;
 
 
-    //Sampling Frequency : 1200000;
-    //Passband Frequency : 85000;
-    //Stopband Frequecncy : 120000;
-    //Passband Ripple (dB) : 5.000000e-02;
-    //Stopband Attenuation (dB) : 60;
-//    cpx_type cx;cpx_type cy;
-//    const double gain_1=3.162408194e-01;const double b0_1=1.000000000e+00;const double b1_1=-1.647429466e+00;const double b2_1=1.000000000e+00;const double a1_1=-1.744746957e+00;const double a2_1=9.510380955e-01;cpx_type cz0_1=0;cpx_type cz1_1=0;
-//    const double gain_2=3.412271383e-01;const double b0_2=1.000000000e+00;const double b1_2=-1.529730272e+00;const double b2_2=1.000000000e+00;const double a1_2=-1.674108330e+00;const double a2_2=8.345771230e-01;cpx_type cz0_2=0;cpx_type cz1_2=0;
-//    const double gain_3=8.226397084e-02;const double b0_3=1.000000000e+00;const double b1_3=-9.246095328e-01;const double b2_3=1.000000000e+00;const double a1_3=-1.601585991e+00;const double a2_3=6.900518807e-01;cpx_type cz0_3=0;cpx_type cz1_3=0;
-//    const double gain_4=2.016190514e-01;const double b0_4=1.000000000e+00;const double b1_4=1.000000000e+00;const double b2_4=0.000000000e+00;const double a1_4=-7.820559935e-01;const double a2_4=0.000000000e+00;cpx_type cz0_4=0;cpx_type cz1_4=0;
-
-    //Sampling Frequency : 1200000;
-    //Passband Frequency : 85000;
-    //Stopband Frequecncy : 120000;
-    //Passband Ripple (dB) : 1.000000e-03;
-    //Stopband Attenuation (dB) : 60;
-//    cpx_type cx;cpx_type cy;
-//    const double gain_1=5.924226432e-01;const double b0_1=1.000000000e+00;const double b1_1=-1.532467557e+00;const double b2_1=1.000000000e+00;const double a1_1=-1.605731944e+00;const double a2_1=8.064119693e-01;cpx_type cz0_1=0;cpx_type cz1_1=0;
-//    const double gain_2=4.370423940e-01;const double b0_2=1.000000000e+00;const double b1_2=-1.173292816e+00;const double b2_2=1.000000000e+00;const double a1_2=-1.484398667e+00;const double a2_2=6.365776884e-01;cpx_type cz0_2=0;cpx_type cz1_2=0;
-//    const double gain_3=3.918739357e-01;const double b0_3=1.000000000e+00;const double b1_3=6.287999016e-01;const double b2_3=1.000000000e+00;const double a1_3=-1.381519761e+00;const double a2_3=4.894225783e-01;cpx_type cz0_3=0;cpx_type cz1_3=0;
-//    const double gain_4=1.973782718e-02;const double b0_4=1.000000000e+00;const double b1_4=-1.624239712e+00;const double b2_4=1.000000000e+00;const double a1_4=-1.708433704e+00;const double a2_4=9.404887921e-01;cpx_type cz0_4=0;cpx_type cz1_4=0;
-
-    //ok
     //Sampling Frequency : 1200000;
     //Passband Frequency : 120000;
     //Stopband Frequecncy : 150000;
     //Passband Ripple (dB) : 2.000000e-02;
     //Stopband Attenuation (dB) : 60;
-    cpx_type cx;cpx_type cy;
-    const double gain_1=6.831108554e-01;const double b0_1=1.000000000e+00;const double b1_1=-1.313855798e+00;const double b2_1=1.000000000e+00;const double a1_1=-1.489941758e+00;const double a2_1=8.282912918e-01;cpx_type cz0_1=0;cpx_type cz1_1=0;
-    const double gain_2=5.253787637e-01;const double b0_2=1.000000000e+00;const double b1_2=-8.863998696e-01;const double b2_2=1.000000000e+00;const double a1_2=-1.425537513e+00;const double a2_2=6.537632118e-01;cpx_type cz0_2=0;cpx_type cz1_2=0;
-    const double gain_3=5.098542519e-01;const double b0_3=1.000000000e+00;const double b1_3=9.226566841e-01;const double b2_3=1.000000000e+00;const double a1_3=-1.369560142e+00;const double a2_3=4.897449865e-01;cpx_type cz0_3=0;cpx_type cz1_3=0;
-    const double gain_4=1.582646632e-02;const double b0_4=1.000000000e+00;const double b1_4=-1.425576003e+00;const double b2_4=1.000000000e+00;const double a1_4=-1.548928949e+00;const double a2_4=9.501363359e-01;cpx_type cz0_4=0;cpx_type cz1_4=0;
+    #ifndef CPX_TYPE
+    typedef std::complex<double> cpx_type;
+    #define CPX_TYPE
+    #endif
+    cpx_type cx_120_150k_BiQuad=0;cpx_type cy_120_150k_BiQuad=0;
+    const double gain_120_150k_BiQuad_1=6.831108554e-01;const double b0_120_150k_BiQuad_1=1.000000000e+00;const double b1_120_150k_BiQuad_1=-1.313855798e+00;const double b2_120_150k_BiQuad_1=1.000000000e+00;const double a1_120_150k_BiQuad_1=-1.489941758e+00;const double a2_120_150k_BiQuad_1=8.282912918e-01;cpx_type cz0_120_150k_BiQuad_1=0;cpx_type cz1_120_150k_BiQuad_1=0;
+    const double gain_120_150k_BiQuad_2=5.253787637e-01;const double b0_120_150k_BiQuad_2=1.000000000e+00;const double b1_120_150k_BiQuad_2=-8.863998696e-01;const double b2_120_150k_BiQuad_2=1.000000000e+00;const double a1_120_150k_BiQuad_2=-1.425537513e+00;const double a2_120_150k_BiQuad_2=6.537632118e-01;cpx_type cz0_120_150k_BiQuad_2=0;cpx_type cz1_120_150k_BiQuad_2=0;
+    const double gain_120_150k_BiQuad_3=5.098542519e-01;const double b0_120_150k_BiQuad_3=1.000000000e+00;const double b1_120_150k_BiQuad_3=9.226566841e-01;const double b2_120_150k_BiQuad_3=1.000000000e+00;const double a1_120_150k_BiQuad_3=-1.369560142e+00;const double a2_120_150k_BiQuad_3=4.897449865e-01;cpx_type cz0_120_150k_BiQuad_3=0;cpx_type cz1_120_150k_BiQuad_3=0;
+    const double gain_120_150k_BiQuad_4=1.582646632e-02;const double b0_120_150k_BiQuad_4=1.000000000e+00;const double b1_120_150k_BiQuad_4=-1.425576003e+00;const double b2_120_150k_BiQuad_4=1.000000000e+00;const double a1_120_150k_BiQuad_4=-1.548928949e+00;const double a2_120_150k_BiQuad_4=9.501363359e-01;cpx_type cz0_120_150k_BiQuad_4=0;cpx_type cz1_120_150k_BiQuad_4=0;
 
+    //Sampling Frequency : 1200000;
+    //Passband Frequency : 150000;
+    //Stopband Frequecncy : 200000;
+    //Passband Ripple (dB) : 5.000000e-03;
+    //Stopband Attenuation (dB) : 60;
+    #ifndef CPX_TYPE
+    typedef std::complex<double> cpx_type;
+    #define CPX_TYPE
+    #endif
+    cpx_type cx_150_200k_BiQuad=0;cpx_type cy_150_200k_BiQuad=0;
+    const double gain_150_200k_BiQuad_1=6.660802832e-01;const double b0_150_200k_BiQuad_1=1.000000000e+00;const double b1_150_200k_BiQuad_1=-8.968007894e-01;const double b2_150_200k_BiQuad_1=1.000000000e+00;const double a1_150_200k_BiQuad_1=-1.223331318e+00;const double a2_150_200k_BiQuad_1=7.529173665e-01;cpx_type cz0_150_200k_BiQuad_1=0;cpx_type cz1_150_200k_BiQuad_1=0;
+    const double gain_150_200k_BiQuad_2=5.432292693e-01;const double b0_150_200k_BiQuad_2=1.000000000e+00;const double b1_150_200k_BiQuad_2=-3.127891487e-01;const double b2_150_200k_BiQuad_2=1.000000000e+00;const double a1_150_200k_BiQuad_2=-1.159558964e+00;const double a2_150_200k_BiQuad_2=5.294187106e-01;cpx_type cz0_150_200k_BiQuad_2=0;cpx_type cz1_150_200k_BiQuad_2=0;
+    const double gain_150_200k_BiQuad_3=7.202922772e-01;const double b0_150_200k_BiQuad_3=1.000000000e+00;const double b1_150_200k_BiQuad_3=1.360062974e+00;const double b2_150_200k_BiQuad_3=1.000000000e+00;const double a1_150_200k_BiQuad_3=-1.109981918e+00;const double a2_150_200k_BiQuad_3=3.347398786e-01;cpx_type cz0_150_200k_BiQuad_3=0;cpx_type cz1_150_200k_BiQuad_3=0;
+    const double gain_150_200k_BiQuad_4=1.835159808e-02;const double b0_150_200k_BiQuad_4=1.000000000e+00;const double b1_150_200k_BiQuad_4=-1.068964572e+00;const double b2_150_200k_BiQuad_4=1.000000000e+00;const double a1_150_200k_BiQuad_4=-1.291784521e+00;const double a2_150_200k_BiQuad_4=9.247654531e-01;cpx_type cz0_150_200k_BiQuad_4=0;cpx_type cz1_150_200k_BiQuad_4=0;
 
+    //Sampling Frequency : 1200000;
+    //Passband Frequency : 200000;
+    //Stopband Frequecncy : 300000;
+    //Passband Ripple (dB) : 2.000000e-02;
+    //Stopband Attenuation (dB) : 60;
+    #ifndef CPX_TYPE
+    typedef std::complex<double> cpx_type;
+    #define CPX_TYPE
+    #endif
+    cpx_type cx_200_300k_BiQuad=0;cpx_type cy_200_300k_BiQuad=0;
+    const double gain_200_300k_BiQuad_1=6.233821143e-01;const double b0_200_300k_BiQuad_1=1.000000000e+00;const double b1_200_300k_BiQuad_1=5.672813696e-01;const double b2_200_300k_BiQuad_1=1.000000000e+00;const double a1_200_300k_BiQuad_1=-7.861964934e-01;const double a2_200_300k_BiQuad_1=4.991804423e-01;cpx_type cz0_200_300k_BiQuad_1=0;cpx_type cz1_200_300k_BiQuad_1=0;
+    const double gain_200_300k_BiQuad_2=1.203129272e+00;const double b0_200_300k_BiQuad_2=1.000000000e+00;const double b1_200_300k_BiQuad_2=1.697850380e+00;const double b2_200_300k_BiQuad_2=1.000000000e+00;const double a1_200_300k_BiQuad_2=-8.562041022e-01;const double a2_200_300k_BiQuad_2=2.317694521e-01;cpx_type cz0_200_300k_BiQuad_2=0;cpx_type cz1_200_300k_BiQuad_2=0;
+    const double gain_200_300k_BiQuad_3=1.949144472e-02;const double b0_200_300k_BiQuad_3=1.000000000e+00;const double b1_200_300k_BiQuad_3=4.428932832e-02;const double b2_200_300k_BiQuad_3=1.000000000e+00;const double a1_200_300k_BiQuad_3=-7.658540886e-01;const double a2_200_300k_BiQuad_3=8.278199534e-01;cpx_type cz0_200_300k_BiQuad_3=0;cpx_type cz1_200_300k_BiQuad_3=0;
+
+    Filter_selection filter_selection=FILTER_200_300;
+    Discrim_selection discrim_selection=DISCRIM_ATAN2_FAST;//this seems ok. it's close to atan2
 
     //FM demod
     double zt0,zt1;

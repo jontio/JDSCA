@@ -8,6 +8,27 @@
 
 using namespace std;
 
+float arctan2_fast_maybe(cpx_type point)
+{
+   double y=point.imag();
+   double x=point.real();
+   double angle;
+   double abs_y = fabs(y)+1e-10;
+   if (x>=0)
+   {
+      double r = (x - abs_y) / (x + abs_y);
+      angle=0.1963 * powf(r,3.0) - 0.9817 * r + M_PI/4.0;
+   }
+    else
+    {
+      double r = (x + abs_y) / (abs_y - x);
+      angle=0.1963 * powf(r,3.0) - 0.9817 * r + 3.0*M_PI/4.0;
+    }
+   if (y < 0) return(-angle);
+    else return(angle);
+}
+
+
 //this is a problem. If WaveTableComplex is used like WaveTableComplex wt; in global then strange things happen like needing to init wt_cis twice. This doesn't happen if used in a class or as a pointer and created later.
 std::vector<cpx_type> WaveTableComplex::wt_cis;
 

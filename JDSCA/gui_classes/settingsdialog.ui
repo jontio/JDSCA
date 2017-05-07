@@ -186,7 +186,7 @@
          <x>10</x>
          <y>100</y>
          <width>401</width>
-         <height>81</height>
+         <height>131</height>
         </rect>
        </property>
        <property name="title">
@@ -292,6 +292,52 @@
         </property>
         <property name="value">
          <double>0.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QComboBox" name="comboBox_rtl_filter_selection">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>70</y>
+          <width>87</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="currentIndex">
+         <number>2</number>
+        </property>
+        <item>
+         <property name="text">
+          <string>100kHz</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>120kHz</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>150kHz</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>200kHz</string>
+         </property>
+        </item>
+       </widget>
+       <widget class="QLabel" name="label_4">
+        <property name="geometry">
+         <rect>
+          <x>130</x>
+          <y>70</y>
+          <width>181</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Filter selection</string>
         </property>
        </widget>
       </widget>

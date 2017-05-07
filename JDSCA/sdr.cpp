@@ -2,6 +2,7 @@
 
 using namespace std;
 
+
 //thread 1
 void SDR::rtlsdr_callback(unsigned char *buf, uint32_t len)
 {
@@ -48,15 +49,65 @@ void SDR::rtlsdr_callback(unsigned char *buf, uint32_t len)
     //mix to 0Hz
     mixer->mix(cblock3);
 
-    //8M
+    //about 20M
     //LPF
-    for(quint32 i=0;i<iqpairsreturnedeachcall;++i)
+    switch(filter_selection)
     {
-        iir_4(cblock3[i]);
-        cblock3[i]=cy;
-    }
 
-    //14M
+    case FILTER_200_300:
+        //LPF 200 to 300. this one should have filtering after the downsampling to 100 if you dont want alising
+        for(quint32 i=0;i<iqpairsreturnedeachcall;++i)
+        {
+            cx_200_300k_BiQuad=cblock3[i]*gain_200_300k_BiQuad_1;cy_200_300k_BiQuad = b0_200_300k_BiQuad_1 * cx_200_300k_BiQuad + cz0_200_300k_BiQuad_1;cz0_200_300k_BiQuad_1 = b1_200_300k_BiQuad_1 * cx_200_300k_BiQuad - a1_200_300k_BiQuad_1 * cy_200_300k_BiQuad + cz1_200_300k_BiQuad_1;cz1_200_300k_BiQuad_1 = b2_200_300k_BiQuad_1 * cx_200_300k_BiQuad - a2_200_300k_BiQuad_1 * cy_200_300k_BiQuad;
+            cx_200_300k_BiQuad=cy_200_300k_BiQuad*gain_200_300k_BiQuad_2;cy_200_300k_BiQuad = b0_200_300k_BiQuad_2 * cx_200_300k_BiQuad + cz0_200_300k_BiQuad_2;cz0_200_300k_BiQuad_2 = b1_200_300k_BiQuad_2 * cx_200_300k_BiQuad - a1_200_300k_BiQuad_2 * cy_200_300k_BiQuad + cz1_200_300k_BiQuad_2;cz1_200_300k_BiQuad_2 = b2_200_300k_BiQuad_2 * cx_200_300k_BiQuad - a2_200_300k_BiQuad_2 * cy_200_300k_BiQuad;
+            cx_200_300k_BiQuad=cy_200_300k_BiQuad*gain_200_300k_BiQuad_3;cy_200_300k_BiQuad = b0_200_300k_BiQuad_3 * cx_200_300k_BiQuad + cz0_200_300k_BiQuad_3;cz0_200_300k_BiQuad_3 = b1_200_300k_BiQuad_3 * cx_200_300k_BiQuad - a1_200_300k_BiQuad_3 * cy_200_300k_BiQuad + cz1_200_300k_BiQuad_3;cz1_200_300k_BiQuad_3 = b2_200_300k_BiQuad_3 * cx_200_300k_BiQuad - a2_200_300k_BiQuad_3 * cy_200_300k_BiQuad;
+            cblock3[i] = cy_200_300k_BiQuad;
+        }
+        break;
+
+    case FILTER_150_200:
+        //LPF 150 to 200
+        for(quint32 i=0;i<iqpairsreturnedeachcall;++i)
+        {
+            cx_150_200k_BiQuad=cblock3[i]*gain_150_200k_BiQuad_1;cy_150_200k_BiQuad = b0_150_200k_BiQuad_1 * cx_150_200k_BiQuad + cz0_150_200k_BiQuad_1;cz0_150_200k_BiQuad_1 = b1_150_200k_BiQuad_1 * cx_150_200k_BiQuad - a1_150_200k_BiQuad_1 * cy_150_200k_BiQuad + cz1_150_200k_BiQuad_1;cz1_150_200k_BiQuad_1 = b2_150_200k_BiQuad_1 * cx_150_200k_BiQuad - a2_150_200k_BiQuad_1 * cy_150_200k_BiQuad;
+            cx_150_200k_BiQuad=cy_150_200k_BiQuad*gain_150_200k_BiQuad_2;cy_150_200k_BiQuad = b0_150_200k_BiQuad_2 * cx_150_200k_BiQuad + cz0_150_200k_BiQuad_2;cz0_150_200k_BiQuad_2 = b1_150_200k_BiQuad_2 * cx_150_200k_BiQuad - a1_150_200k_BiQuad_2 * cy_150_200k_BiQuad + cz1_150_200k_BiQuad_2;cz1_150_200k_BiQuad_2 = b2_150_200k_BiQuad_2 * cx_150_200k_BiQuad - a2_150_200k_BiQuad_2 * cy_150_200k_BiQuad;
+            cx_150_200k_BiQuad=cy_150_200k_BiQuad*gain_150_200k_BiQuad_3;cy_150_200k_BiQuad = b0_150_200k_BiQuad_3 * cx_150_200k_BiQuad + cz0_150_200k_BiQuad_3;cz0_150_200k_BiQuad_3 = b1_150_200k_BiQuad_3 * cx_150_200k_BiQuad - a1_150_200k_BiQuad_3 * cy_150_200k_BiQuad + cz1_150_200k_BiQuad_3;cz1_150_200k_BiQuad_3 = b2_150_200k_BiQuad_3 * cx_150_200k_BiQuad - a2_150_200k_BiQuad_3 * cy_150_200k_BiQuad;
+            cx_150_200k_BiQuad=cy_150_200k_BiQuad*gain_150_200k_BiQuad_4;cy_150_200k_BiQuad = b0_150_200k_BiQuad_4 * cx_150_200k_BiQuad + cz0_150_200k_BiQuad_4;cz0_150_200k_BiQuad_4 = b1_150_200k_BiQuad_4 * cx_150_200k_BiQuad - a1_150_200k_BiQuad_4 * cy_150_200k_BiQuad + cz1_150_200k_BiQuad_4;cz1_150_200k_BiQuad_4 = b2_150_200k_BiQuad_4 * cx_150_200k_BiQuad - a2_150_200k_BiQuad_4 * cy_150_200k_BiQuad;
+            cblock3[i] = cy_150_200k_BiQuad;
+        }
+        break;
+
+    case FILTER_120_150:
+        //LPF 120 to 150
+        for(quint32 i=0;i<iqpairsreturnedeachcall;++i)
+        {
+            cx_120_150k_BiQuad=cblock3[i]*gain_120_150k_BiQuad_1;cy_120_150k_BiQuad = b0_120_150k_BiQuad_1 * cx_120_150k_BiQuad + cz0_120_150k_BiQuad_1;cz0_120_150k_BiQuad_1 = b1_120_150k_BiQuad_1 * cx_120_150k_BiQuad - a1_120_150k_BiQuad_1 * cy_120_150k_BiQuad + cz1_120_150k_BiQuad_1;cz1_120_150k_BiQuad_1 = b2_120_150k_BiQuad_1 * cx_120_150k_BiQuad - a2_120_150k_BiQuad_1 * cy_120_150k_BiQuad;
+            cx_120_150k_BiQuad=cy_120_150k_BiQuad*gain_120_150k_BiQuad_2;cy_120_150k_BiQuad = b0_120_150k_BiQuad_2 * cx_120_150k_BiQuad + cz0_120_150k_BiQuad_2;cz0_120_150k_BiQuad_2 = b1_120_150k_BiQuad_2 * cx_120_150k_BiQuad - a1_120_150k_BiQuad_2 * cy_120_150k_BiQuad + cz1_120_150k_BiQuad_2;cz1_120_150k_BiQuad_2 = b2_120_150k_BiQuad_2 * cx_120_150k_BiQuad - a2_120_150k_BiQuad_2 * cy_120_150k_BiQuad;
+            cx_120_150k_BiQuad=cy_120_150k_BiQuad*gain_120_150k_BiQuad_3;cy_120_150k_BiQuad = b0_120_150k_BiQuad_3 * cx_120_150k_BiQuad + cz0_120_150k_BiQuad_3;cz0_120_150k_BiQuad_3 = b1_120_150k_BiQuad_3 * cx_120_150k_BiQuad - a1_120_150k_BiQuad_3 * cy_120_150k_BiQuad + cz1_120_150k_BiQuad_3;cz1_120_150k_BiQuad_3 = b2_120_150k_BiQuad_3 * cx_120_150k_BiQuad - a2_120_150k_BiQuad_3 * cy_120_150k_BiQuad;
+            cx_120_150k_BiQuad=cy_120_150k_BiQuad*gain_120_150k_BiQuad_4;cy_120_150k_BiQuad = b0_120_150k_BiQuad_4 * cx_120_150k_BiQuad + cz0_120_150k_BiQuad_4;cz0_120_150k_BiQuad_4 = b1_120_150k_BiQuad_4 * cx_120_150k_BiQuad - a1_120_150k_BiQuad_4 * cy_120_150k_BiQuad + cz1_120_150k_BiQuad_4;cz1_120_150k_BiQuad_4 = b2_120_150k_BiQuad_4 * cx_120_150k_BiQuad - a2_120_150k_BiQuad_4 * cy_120_150k_BiQuad;
+            cblock3[i] = cy_120_150k_BiQuad;
+        }
+        break;
+
+    case FILTER_100_120:
+        //LPF 100 to 120
+        for(quint32 i=0;i<iqpairsreturnedeachcall;++i)
+        {
+            cx_100_120k_BiQuad=cblock3[i]*gain_100_120k_BiQuad_1;cy_100_120k_BiQuad = b0_100_120k_BiQuad_1 * cx_100_120k_BiQuad + cz0_100_120k_BiQuad_1;cz0_100_120k_BiQuad_1 = b1_100_120k_BiQuad_1 * cx_100_120k_BiQuad - a1_100_120k_BiQuad_1 * cy_100_120k_BiQuad + cz1_100_120k_BiQuad_1;cz1_100_120k_BiQuad_1 = b2_100_120k_BiQuad_1 * cx_100_120k_BiQuad - a2_100_120k_BiQuad_1 * cy_100_120k_BiQuad;
+            cx_100_120k_BiQuad=cy_100_120k_BiQuad*gain_100_120k_BiQuad_2;cy_100_120k_BiQuad = b0_100_120k_BiQuad_2 * cx_100_120k_BiQuad + cz0_100_120k_BiQuad_2;cz0_100_120k_BiQuad_2 = b1_100_120k_BiQuad_2 * cx_100_120k_BiQuad - a1_100_120k_BiQuad_2 * cy_100_120k_BiQuad + cz1_100_120k_BiQuad_2;cz1_100_120k_BiQuad_2 = b2_100_120k_BiQuad_2 * cx_100_120k_BiQuad - a2_100_120k_BiQuad_2 * cy_100_120k_BiQuad;
+            cx_100_120k_BiQuad=cy_100_120k_BiQuad*gain_100_120k_BiQuad_3;cy_100_120k_BiQuad = b0_100_120k_BiQuad_3 * cx_100_120k_BiQuad + cz0_100_120k_BiQuad_3;cz0_100_120k_BiQuad_3 = b1_100_120k_BiQuad_3 * cx_100_120k_BiQuad - a1_100_120k_BiQuad_3 * cy_100_120k_BiQuad + cz1_100_120k_BiQuad_3;cz1_100_120k_BiQuad_3 = b2_100_120k_BiQuad_3 * cx_100_120k_BiQuad - a2_100_120k_BiQuad_3 * cy_100_120k_BiQuad;
+            cx_100_120k_BiQuad=cy_100_120k_BiQuad*gain_100_120k_BiQuad_4;cy_100_120k_BiQuad = b0_100_120k_BiQuad_4 * cx_100_120k_BiQuad + cz0_100_120k_BiQuad_4;cz0_100_120k_BiQuad_4 = b1_100_120k_BiQuad_4 * cx_100_120k_BiQuad - a1_100_120k_BiQuad_4 * cy_100_120k_BiQuad + cz1_100_120k_BiQuad_4;cz1_100_120k_BiQuad_4 = b2_100_120k_BiQuad_4 * cx_100_120k_BiQuad - a2_100_120k_BiQuad_4 * cy_100_120k_BiQuad;
+            cblock3[i] = cy_100_120k_BiQuad;
+        }
+        break;
+
+    default:
+        ;
+    };
+
+    //qint64 t = getticks();
+
+    //50M using DISCRIM_ATAN2_FAST
     //FM demod
     static quint32 down=0;
     unsigned int buffer_size_returned=0;
@@ -70,28 +121,46 @@ void SDR::rtlsdr_callback(unsigned char *buf, uint32_t len)
         avept=avept*(1.0-0.000001)+0.000001*cy;
         cy-=avept;
 
+        double audiosignal=0;
+
         //4M (this is about 1/5th of the CPU needed of using std::arg)
         //FM demod
         // see http://www.embedded.com/design/configurable-systems/4212086/DSP-Tricks--Frequency-demodulation-algorithms-
-        static double aveppower=0;
-        aveppower=aveppower*(1.0-0.00001)+0.00001*(cy.real()*cy.real()+cy.imag()*cy.imag());
-        aveppower=qMax(aveppower,2.0);
-        double qpn=cy.real()-zb1;
-        double ipn=cy.imag()-zt1;
-        double output=((qpn*zt0)-(ipn*zb0));
-        zt1=zt0;
-        zb1=zb0;
-        zt0=cy.imag();
-        zb0=cy.real();
-        double audiosignal=(0.33/aveppower)*output;
+        if(discrim_selection==DISCRIM_APPROX)
+        {
+            static double aveppower=0;
+            aveppower=aveppower*(1.0-0.00001)+0.00001*(cy.real()*cy.real()+cy.imag()*cy.imag());
+            aveppower=qMax(aveppower,2.0);
+            double qpn=cy.real()-zb1;
+            double ipn=cy.imag()-zt1;
+            double output=((qpn*zt0)-(ipn*zb0));
+            zt1=zt0;
+            zb1=zb0;
+            zt0=cy.imag();
+            zb0=cy.real();
+            audiosignal=(0.33/aveppower)*output;
+        }
 
         //20M
         //FM demod using angle
         //using angle
-        /*static cpx_type cy_last;
-        double angle = -std::arg(cy*std::conj(cy_last));
-        cy_last=cy;
-        double audiosignal=angle/3.0;*/
+        if(discrim_selection==DISCRIM_ATAN2)
+        {
+            static cpx_type cy_last;
+            double angle = -std::arg(cy*std::conj(cy_last));
+            cy_last=cy;
+            audiosignal=angle/3.0;
+        }
+
+        //9M
+        //FM demod using another version of atan2
+        if(discrim_selection==DISCRIM_ATAN2_FAST)
+        {
+            static cpx_type cy_last;
+            double angle = -arctan2_fast_maybe(cy*std::conj(cy_last));
+            cy_last=cy;
+            audiosignal=angle/3.0;
+        }
 
         //AGC (DC bias of FM is related to Frequency offset)
         static double avedcbias=0;
@@ -104,8 +173,9 @@ void SDR::rtlsdr_callback(unsigned char *buf, uint32_t len)
             if(useafc)mixer->nudgefreq(5.0*avedcbias,250000-100000,250000+100000);
         }
 
-
-        //SCA test. Frequency shift down and band pass
+        //40M
+        //wow this uses a lot, it's a FIR thats why
+        //SCA down. Frequency shift down and band pass
         cpx_type ctout=hfir->Update_Single_c_out2(audiosignal);
         ctout*=mixer3->take_step_back_and_get_val();
         audiosignal=ctout.real()+ctout.imag();
@@ -122,6 +192,11 @@ void SDR::rtlsdr_callback(unsigned char *buf, uint32_t len)
 
     }
     down-=iqpairsreturnedeachcall;
+
+    //t = getticks() - t;
+    //static qint64 ast=t;
+    //ast=ast*0.99+0.01*t;
+    //qDebug()<<ast;
 
     buffers_size_valid[buffers_head_ptr]=buffer_size_returned;//save the actual buffer size to the user
 
@@ -274,10 +349,7 @@ bool SDR::StopAndCloseRtl()
     buffers_used=0;
     peak_input_val=0;
     cx=0;cy=0;
-    cz0_1=0;cz1_1=0;
-    cz0_2=0;cz1_2=0;
-    cz0_3=0;cz1_3=0;
-    cz0_4=0;cz1_4=0;
+
 
     SetSubCarrierFrequencyOffset(20000);
 
@@ -379,6 +451,16 @@ void SDR::SetAFC(bool enable)
     QMutexLocker locker(&mut);
     mixer->setfreq(250000,1200000);
     useafc=enable;
+}
+
+void SDR::SetFilterSelection(SDR::Filter_selection _filter_selection)
+{
+    filter_selection=_filter_selection;
+}
+
+SDR::Filter_selection SDR::GetFilterSelection()
+{
+    return filter_selection;
 }
 
 void SDR::SetFrequency(int freq)

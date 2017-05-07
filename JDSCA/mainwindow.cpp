@@ -172,6 +172,7 @@ connect(datadeformatter,SIGNAL(signalDSCARDSPacket(QByteArray)),this,SLOT(DSCARD
         sdr->SetGain(settingsdialog->rtl_gain);
         sdr->SetFrequency(ui->doubleSpinBox_rtl_freq->value()*1000000);
         sdr->SetSubCarrierFrequencyOffset(settingsdialog->rtl_subcarrier_freq_offset);
+        sdr->SetFilterSelection(settingsdialog->rtl_filter_selection);
         ui->doubleSpinBox_rtl_freq->clearFocus();
         ui->spectrumdisplay->setFrequencyOffset(settingsdialog->rtl_subcarrier_freq_offset);
     } else jsound->Active(true);
@@ -277,7 +278,7 @@ void MainWindow::AboutSlot()
 {
     QMessageBox::about(this,"JDSCA",""
                                      "<H1>A DSCA demodulator and decoder</H1>"
-                                     "<H3>v1.1.1</H3>"
+                                     "<H3>v1.1.2</H3>"
                                      "<p>This is a program to listen to digital SCA signals.</p>"
                                      "<p><a href=\"http://jontio.zapto.org/hda1/jdsca.html\">http://jontio.zapto.org/hda1/jdsca.html</a>.</p>"
                                      "<p>Jonti 2017</p>" );
@@ -386,6 +387,7 @@ void MainWindow::acceptsettings()
     sdr->SetGain(settingsdialog->rtl_gain);
     sdr->SetFrequency(ui->doubleSpinBox_rtl_freq->value()*1000000);
     sdr->SetSubCarrierFrequencyOffset(settingsdialog->rtl_subcarrier_freq_offset);
+    sdr->SetFilterSelection(settingsdialog->rtl_filter_selection);
     ui->doubleSpinBox_rtl_freq->clearFocus();
 
     if(sdr->active)ui->spectrumdisplay->setFrequencyOffset(settingsdialog->rtl_subcarrier_freq_offset);

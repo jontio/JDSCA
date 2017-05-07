@@ -2,6 +2,7 @@
 #define SETTINGSDIALOG_H
 
 #include <QtGlobal>
+#include "sdr.h"
 
 
 #if defined(Q_OS_UNIX) || defined(Q_OS_LUNX)
@@ -47,6 +48,7 @@ public:
     bool rtl_agc;
     int rtl_subcarrier_freq_offset;//in Hz
     double rtl_gain;
+    SDR::Filter_selection rtl_filter_selection;
 
 private:
     Ui::SettingsDialog *ui;    

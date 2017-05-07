@@ -42,6 +42,7 @@ void SettingsDialog::poulatepublicvars()
     rtl_agc=ui->checkBox_rtl_agc->isChecked();
     rtl_subcarrier_freq_offset=(ui->doubleSpinBox_rtl_subcarrier_freq_offset->value()*1000.0);//from kHz to Hz
     rtl_gain=ui->doubleSpinBox_rtl_gain->value();
+    rtl_filter_selection=(SDR::Filter_selection)ui->comboBox_rtl_filter_selection->currentIndex();
 
 }
 
@@ -82,7 +83,7 @@ void SettingsDialog::populatesettings()
     ui->checkBox_rtl_agc->setChecked(settings.value("checkBox_rtl_agc",true).toBool());
     ui->doubleSpinBox_rtl_subcarrier_freq_offset->setValue(settings.value("doubleSpinBox_rtl_subcarrier_freq_offset",0.0).toDouble());
     ui->doubleSpinBox_rtl_gain->setValue(settings.value("doubleSpinBox_rtl_gain",50).toDouble());
-
+    ui->comboBox_rtl_filter_selection->setCurrentIndex(settings.value("comboBox_rtl_filter_selection",(int)SDR::FILTER_150_200).toInt());
 
     poulatepublicvars();
 }
@@ -106,6 +107,7 @@ void SettingsDialog::accept()
     settings.setValue("checkBox_rtl_agc",ui->checkBox_rtl_agc->isChecked());
     settings.setValue("doubleSpinBox_rtl_subcarrier_freq_offset",ui->doubleSpinBox_rtl_subcarrier_freq_offset->value());
     settings.setValue("doubleSpinBox_rtl_gain",ui->doubleSpinBox_rtl_gain->value());
+    settings.setValue("comboBox_rtl_filter_selection",ui->comboBox_rtl_filter_selection->currentIndex());
 
     poulatepublicvars();
     QDialog::accept();
