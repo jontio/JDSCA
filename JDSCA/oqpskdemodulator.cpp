@@ -644,7 +644,7 @@ void OqpskDemodulator::FreqOffsetEstimateSlot(double freq_offset_est)//coarse es
         //cma.setSettings(24,0.000001 ,1);// very slow a but doesn't get put off by noise
         //cma.setSettings(24,0.00002 ,1);//24--> 12 symbols , 0.00002 is somewhat slow to converge
 
-    }    
+    }
     if((afc)&&(dcd)&&(fabs(mixer2.GetFreqHz()-mixer_center.wt_freq)>3.0))//got a sig, afc on, freq is getting a little to far out
     {
         if(countdown>0)countdown--;
